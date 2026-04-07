@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'layout/main_layout.dart';
+import 'peripheral/initialize.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await setupBlePeripheral(); 
   runApp(const MyApp());
 }
 
@@ -17,7 +20,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
       ),
       home: const MainLayout(),
-      debugShowCheckedModeBanner: false, // Hides the debug banner
+      debugShowCheckedModeBanner: false,
     );
   }
 }
