@@ -1,6 +1,17 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:async'; 
 import 'package:ble_peripheral/ble_peripheral.dart';
+import 'package:ble_peripheral/src/ble_peripheral_interface.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+// const String myServiceUuid = "0000180F-0000-1000-8000-00805F9B34FB";
+// const String myCharacteristicUuid = "00002A19-0000-1000-8000-00805F9B34FB";
+
+const String myServiceUuid = "12345678-1234-5678-1234-56789abcdef0";
+const String myCharacteristicUuid = "12345678-1234-5678-1234-56789abcdef1";
+
+Timer? heartbeatTimer;
 
 Future<void> requestBlePermissions() async {
   await [
@@ -16,12 +27,100 @@ Future<void> setupBlePeripheral() async {
   try {
     await requestBlePermissions();
     await BlePeripheral.initialize();
-    print("BLE INTIALIZIED");
+    print("BLE INITIALIZED");
 
-    BlePeripheral.setBleStateChangeCallback((bool isOn){
+    // Listen to OS Bluetooth State changes
+    BlePeripheral.setBleStateChangeCallback((bool isOn) async {
       print("Bluetooth State Changed: ${isOn ? "ON" : "OFF"}");
+      if (isOn) {
+        await _startAdvertisingSequence();
+      } else {
+        stopHeartbeat();
+        await BlePeripheral.stopAdvertising();
+      }
     });
+
+    BlePeripheral.setAdvertisingStatusUpdateCallback((bool advertising, String? error) {
+      print("AdvertisingStatus: $advertising Error: $error");
+    });
+
+    BlePeripheral.setCharacteristicSubscriptionChangeCallback(
+      (deviceId, characteristicId, isSubscribed) {
+        print("Device $deviceId subscription to $characteristicId changed to: $isSubscribed");
+        if (isSubscribed) {
+          startHeartbeat();
+        } else {
+          stopHeartbeat();
+        }
+    } as CharacteristicSubscriptionChangeCallback);
+
+    await _startAdvertisingSequence();
+    
   } catch (e) {
-    print("Error Intializing , $e");
+    print("Error Initializing, $e");
   }
+}
+
+Future<void> _startAdvertisingSequence() async {
+  try {
+    await BlePeripheral.clearServices();
+    await BlePeripheral.addService(
+      BleService(
+         uuid: myServiceUuid,
+        primary: true,
+        characteristics: [
+          BleCharacteristic(
+            uuid: myCharacteristicUuid,
+            properties: [
+              CharacteristicProperties.read.index,
+              CharacteristicProperties.notify.index 
+            ],
+            value: null,
+            permissions: [
+              AttributePermissions.readable.index,
+              AttributePermissions.writeable.index // FIX 2: Add this to prevent pairing requests!
+            ],
+          ),
+        ],
+      ),
+    );
+
+    await BlePeripheral.startAdvertising(
+      services: [myServiceUuid],
+      localName: "MyBeacon",
+    );
+    print("Advertising requested...");
+    startHeartbeat();
+  } catch (e) {
+    print("Broadcasting deferred: $e");
+  }
+}
+
+Future<void> sendMessageToCentral(String message) async {
+  try {
+    List<int> bytes = utf8.encode(message); 
+    Uint8List byteData = Uint8List.fromList(bytes);
+    
+    await BlePeripheral.updateCharacteristic(
+      characteristicId: myCharacteristicUuid,
+      value: byteData,
+    );
+    print("Message sent: $message");
+  } catch (e) {
+    print("Failed to send message: $e");
+  }
+}
+
+void startHeartbeat() {
+  heartbeatTimer?.cancel();
+  heartbeatTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    String timeStr = DateTime.now().toIso8601String().substring(11, 19);
+    sendMessageToCentral("Heartbeat: $timeStr");
+  });
+  print("Heartbeat started.");
+}
+
+void stopHeartbeat() {
+  heartbeatTimer?.cancel();
+  print("Heartbeat stopped.");
 }
