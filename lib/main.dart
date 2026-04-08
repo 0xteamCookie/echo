@@ -70,6 +70,9 @@ class _BleScoutScreenState extends State<BleScoutScreen>
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
+  
+  // Add controller for custom message
+  final TextEditingController _msgController = TextEditingController();
 
   @override
   void initState() {
@@ -108,6 +111,7 @@ class _BleScoutScreenState extends State<BleScoutScreen>
   @override
   void dispose() {
     _pulseController.dispose();
+    _msgController.dispose();
     super.dispose();
   }
 
@@ -328,15 +332,45 @@ class _BleScoutScreenState extends State<BleScoutScreen>
             textAlign: TextAlign.center,
             style: TextStyle(color: _textSecondary, fontSize: 12),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 20),
+          
+          // Input Box for Custom Message
+          TextField(
+            controller: _msgController,
+            style: const TextStyle(color: _textPrimary, fontSize: 14),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: _surface,
+              hintText: "Enter custom message / prefix",
+              hintStyle: const TextStyle(color: _textSecondary),
+              prefixIcon: const Icon(Icons.edit_note, color: _accentDim),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: _divider),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: _divider),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: _accent, width: 1.5),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 20),
           _actionButton(
-            label: "SEND MANUAL ALERT",
-            icon: Icons.notification_important,
+            label: "SEND ONCE",
+            icon: Icons.send,
             color: Colors.orangeAccent,
             onTap: () {
-              sendMessageToCentral("Manual Alert from ${_devices.length}!");
+              final msg = _msgController.text.trim().isNotEmpty
+                  ? _msgController.text
+                  : "Manual Alert!";
+              sendMessageToCentral(msg);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Manual Alert Sent!'), duration: Duration(seconds: 1)),
+                const SnackBar(content: Text('Message Sent!'), duration: Duration(seconds: 1)),
               );
             },
           ),
@@ -346,7 +380,7 @@ class _BleScoutScreenState extends State<BleScoutScreen>
             icon: Icons.play_arrow,
             color: _green,
             onTap: () {
-              startHeartbeat();
+              startHeartbeat(_msgController.text);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Heartbeat Started'), duration: Duration(seconds: 1)),
               );

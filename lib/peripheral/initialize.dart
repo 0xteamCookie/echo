@@ -5,9 +5,6 @@ import 'package:ble_peripheral/ble_peripheral.dart';
 import 'package:ble_peripheral/src/ble_peripheral_interface.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// const String myServiceUuid = "0000180F-0000-1000-8000-00805F9B34FB";
-// const String myCharacteristicUuid = "00002A19-0000-1000-8000-00805F9B34FB";
-
 const String myServiceUuid = "12345678-1234-5678-1234-56789abcdef0";
 const String myCharacteristicUuid = "12345678-1234-5678-1234-56789abcdef1";
 
@@ -78,7 +75,7 @@ Future<void> _startAdvertisingSequence() async {
             value: null,
             permissions: [
               AttributePermissions.readable.index,
-              AttributePermissions.writeable.index // FIX 2: Add this to prevent pairing requests!
+              AttributePermissions.writeable.index
             ],
           ),
         ],
@@ -90,7 +87,8 @@ Future<void> _startAdvertisingSequence() async {
       localName: "MyBeacon",
     );
     print("Advertising requested...");
-    startHeartbeat();
+    // Only start heartbeat if you want it running blindly, otherwise let subscriptions trigger it
+    // startHeartbeat(); 
   } catch (e) {
     print("Broadcasting deferred: $e");
   }
@@ -111,13 +109,18 @@ Future<void> sendMessageToCentral(String message) async {
   }
 }
 
-void startHeartbeat() {
+void startHeartbeat([String customPrefix = "Heartbeat"]) {
   heartbeatTimer?.cancel();
+  
+  if (customPrefix.trim().isEmpty) {
+    customPrefix = "Heartbeat";
+  }
+
   heartbeatTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
     String timeStr = DateTime.now().toIso8601String().substring(11, 19);
-    sendMessageToCentral("Heartbeat: $timeStr");
+    sendMessageToCentral("$customPrefix: $timeStr");
   });
-  print("Heartbeat started.");
+  print("Heartbeat started with prefix: $customPrefix.");
 }
 
 void stopHeartbeat() {
