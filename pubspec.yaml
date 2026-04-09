@@ -36,6 +36,15 @@ dependencies:
   cupertino_icons: ^1.0.8
   ble_peripheral: ^2.4.0
   permission_handler: ^11.0.0
+<<<<<<< HEAD
+=======
+  flutter_blue_plus: ^2.2.1
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  geolocator: ^14.0.2
+  shared_preferences: ^2.5.5
+  uuid: ^4.5.3
+>>>>>>> e402c24d7948dc117fba4becefdb07b2480b3474
 
 dev_dependencies:
   flutter_test:
