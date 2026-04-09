@@ -4,6 +4,8 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   ble_peripheral
+  flutter_blue_plus_winrt
+  geolocator_windows
   permission_handler_windows
 )
 

@@ -25,8 +25,8 @@ class DatabaseHelper {
     CREATE TABLE messages (
       messageId TEXT PRIMARY KEY,
       message TEXT,
-      devicemac TEXT,
-      ttl TEXT,
+      deviceId TEXT,
+      expiresAt TEXT,
       location TEXT
     )
   ''');

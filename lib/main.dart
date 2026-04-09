@@ -1,12 +1,4 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import 'layout/main_layout.dart';
-import 'peripheral/initialize.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await setupBlePeripheral(); 
-=======
 import 'package:flutter/services.dart';
 
 // Peripheral and Central logic imports
@@ -25,7 +17,6 @@ void main() async {
   // Initialize the peripheral (broadcasting) side
   await setupBlePeripheral();
   
->>>>>>> e402c24d7948dc117fba4becefdb07b2480b3474
   runApp(const MyApp());
 }
 
@@ -57,12 +48,7 @@ class MyApp extends StatelessWidget {
           surface: _surface,
         ),
       ),
-<<<<<<< HEAD
-      home: const MainLayout(),
-      debugShowCheckedModeBanner: false,
-=======
       home: const BleScoutScreen(),
->>>>>>> e402c24d7948dc117fba4becefdb07b2480b3474
     );
   }
 }

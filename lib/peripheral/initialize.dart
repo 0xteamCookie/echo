@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-import 'package:ble_peripheral/ble_peripheral.dart';
-import 'package:permission_handler/permission_handler.dart';
-
-=======
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:async'; 
@@ -14,7 +9,6 @@ const String myServiceUuid = "12345678-1234-5678-1234-56789abcdef0";
 const String myCharacteristicUuid = "12345678-1234-5678-1234-56789abcdef1";
 
 Timer? heartbeatTimer;
->>>>>>> e402c24d7948dc117fba4becefdb07b2480b3474
 
 Future<void> requestBlePermissions() async {
   await [
@@ -30,16 +24,6 @@ Future<void> setupBlePeripheral() async {
   try {
     await requestBlePermissions();
     await BlePeripheral.initialize();
-<<<<<<< HEAD
-    print("BLE INTIALIZIED");
-
-    BlePeripheral.setBleStateChangeCallback((bool isOn){
-      print("Bluetooth State Changed: ${isOn ? "ON" : "OFF"}");
-    });
-  } catch (e) {
-    print("Error Intializing , $e");
-  }
-=======
     print("BLE INITIALIZED");
 
     // Listen to OS Bluetooth State changes
@@ -142,5 +126,4 @@ void startHeartbeat([String customPrefix = "Heartbeat"]) {
 void stopHeartbeat() {
   heartbeatTimer?.cancel();
   print("Heartbeat stopped.");
->>>>>>> e402c24d7948dc117fba4becefdb07b2480b3474
 }
