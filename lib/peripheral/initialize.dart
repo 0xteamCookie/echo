@@ -24,6 +24,11 @@ Future<void> setupBlePeripheral() async {
     // Listen to OS Bluetooth State changes
     BlePeripheral.setBleStateChangeCallback((bool isOn) async {
       print("Bluetooth State Changed: ${isOn ? "ON" : "OFF"}");
+      if (isOn) {
+        await _startAdvertisingSequence();
+      } else {
+        await BlePeripheral.stopAdvertising();
+      }
     });
 
     BlePeripheral.setAdvertisingStatusUpdateCallback((bool advertising, String? error) {
