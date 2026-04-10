@@ -36,9 +36,9 @@ Future<void> setupBlePeripheral() async {
     });
 
     BlePeripheral.setCharacteristicSubscriptionChangeCallback(
-      (deviceId, characteristicId, isSubscribed) {
-        print("Device $deviceId subscription to $characteristicId changed to: $isSubscribed");
-    } as CharacteristicSubscriptionChangeCallback);
+      (String deviceId, String characteristicId, bool isSubscribed, String? name) {
+        print("Device $deviceId ($name) subscription to $characteristicId changed to: $isSubscribed");
+    });
 
     await _startAdvertisingSequence();
     
