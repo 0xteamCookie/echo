@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 
 // Peripheral and Central logic imports
 import 'peripheral/initialize.dart';
-import 'central/intialize.dart'; // Make sure this matches your actual file name
+import 'central/intialize.dart';
+import 'send/send-message.dart';
+import 'recieve/recieve-message.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,6 +69,7 @@ class _BleScoutScreenState extends State<BleScoutScreen>
   List<Map<String, dynamic>> _devices = [];
   final List<_HeartbeatEntry> _heartbeats = [];
   int _selectedTab = 0; // 0 = Devices, 1 = Heartbeat, 2 = Broadcast
+  String _lastSentPacketHex = ""; 
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
@@ -92,13 +95,27 @@ class _BleScoutScreenState extends State<BleScoutScreen>
       if (mounted) setState(() => _devices = devices);
     };
 
-    onMessageReceived = (msg) {
+    onMessageReceived = (msg) async {
+      final decodedPacket = await decodeAndSaveMessage(msg);
+      
       if (mounted) {
         setState(() {
-          _heartbeats.insert(
-            0,
-            _HeartbeatEntry(message: msg, time: DateTime.now()),
-          );
+          if (decodedPacket != null) {
+            // It was a valid mesh packet
+            final deviceId = decodedPacket['deviceId'];
+            final shortId = deviceId.length >= 6 ? deviceId.substring(0, 6) : deviceId;
+            final text = decodedPacket['message'];
+            final time = DateTime.tryParse(decodedPacket['expiresAt']) ?? DateTime.now();
+
+            _heartbeats.insert(0, _HeartbeatEntry(
+              message: "[Dev: $shortId] $text", 
+              time: time
+            ));
+          } else {
+            // Fallback for random custom messages that lack the "||" formatting
+            _heartbeats.insert(0, _HeartbeatEntry(message: msg, time: DateTime.now()));
+          }
+
           if (_heartbeats.length > 50) _heartbeats.removeLast();
         });
       }
@@ -364,13 +381,19 @@ class _BleScoutScreenState extends State<BleScoutScreen>
             label: "SEND ONCE",
             icon: Icons.send,
             color: Colors.orangeAccent,
-            onTap: () {
+            onTap: () async {
               final msg = _msgController.text.trim().isNotEmpty
                   ? _msgController.text
                   : "Manual Alert!";
-              sendMessageToCentral(msg);
+              // This single call handles generation, DB saving, transmitting bytes, and returning Hex Formatted string
+              final hexCode = await broadcastMessage(msg);
+              
+              setState(() {
+                _lastSentPacketHex = hexCode;
+              });
+
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Message Sent!'), duration: Duration(seconds: 1)),
+                const SnackBar(content: Text('Message Broadcasted!'), duration: Duration(seconds: 1)),
               );
             },
           ),
@@ -398,6 +421,23 @@ class _BleScoutScreenState extends State<BleScoutScreen>
               );
             },
           ),
+
+          if (_lastSentPacketHex.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            const Text("Last Broadcasted Payload (Hex):", style: TextStyle(color: _accentDim, fontSize: 12)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _surfaceAlt,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _lastSentPacketHex,
+                style: const TextStyle(color: _textPrimary, fontSize: 10),
+              ),
+            )
+          ],
         ],
       ),
     );
