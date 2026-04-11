@@ -123,9 +123,17 @@ Future<void> dispatchPayloadToDevice(
     print("🚀 Delivering mail to $deviceId...");
 
     // 1. Connect temporarily
-    await device
-        .connect(autoConnect: false, license: License.free)
-        .timeout(const Duration(seconds: 5));
+    await device.connect(autoConnect: false, license: License.free);
+
+    // Force Android to fetch the latest characteristic properties (Clear Cache)
+    if (Platform.isAndroid) {
+      try {
+        await device.clearGattCache();
+      } catch (_) {}
+    }
+
+    // Give Android BLE stack a moment to stabilize the connection
+    await Future.delayed(const Duration(milliseconds: 500));
 
     // 2. Discover target service/characteristic
     List<BluetoothService> services = await device.discoverServices();
@@ -135,11 +143,22 @@ Future<void> dispatchPayloadToDevice(
         for (var char in service.characteristics) {
           if (char.uuid.toString().toLowerCase() ==
               targetCharacteristicUuid.toString().toLowerCase()) {
-            // 3. WRITE THE PAYLOAD (without response to bypass pairing triggers)
-            await char.write(payloadBytes, withoutResponse: true);
-            print("✅ Mail delivered successfully to $deviceId!");
+            
+            // 3. Dynamically check what the cached property allows
+            bool canWriteNoResponse = char.properties.writeWithoutResponse;
+            bool canWrite = char.properties.write;
 
-            // 4. Instantly disconnect to free up the radio
+            if (canWriteNoResponse || canWrite) {
+              await char.write(payloadBytes, withoutResponse: canWriteNoResponse);
+              print("✅ Mail delivered successfully to $deviceId!");
+            } else {
+              print("❌ Cached characteristic has NO write properties! Toggle Bluetooth on BOTH phones.");
+            }
+
+            // Give the radio time to actually transmit the packet before severing the connection
+            await Future.delayed(const Duration(milliseconds: 500));
+
+            // 4. Disconnect to free up the radio
             await device.disconnect();
             return;
           }
@@ -156,7 +175,6 @@ Future<void> dispatchPayloadToDevice(
     } catch (_) {}
   }
 }
-
 /// Helper function to blast a message to ALL discovered mesh nodes
 Future<void> blastToEntireMesh(List<int> payloadBytes) async {
   // Pause scanning while transmitting so radio isn't overwhelmed
