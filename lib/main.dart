@@ -6,6 +6,7 @@ import 'peripheral/initialize.dart';
 import 'central/intialize.dart';
 import 'send/send-message.dart';
 import 'recieve/recieve-message.dart';
+import 'database/db_hook.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,13 +69,14 @@ class _BleScoutScreenState extends State<BleScoutScreen>
     with TickerProviderStateMixin {
   List<Map<String, dynamic>> _devices = [];
   final List<_HeartbeatEntry> _heartbeats = [];
-  int _selectedTab = 0; // 0 = Devices, 1 = Heartbeat, 2 = Broadcast
+  List<Map<String, dynamic>> _dbRecords = [];
+
+  int _selectedTab = 0; // 0 = Devices, 1 = Heartbeat, 2 = Broadcast, 3 = Database
   String _lastSentPacketHex = ""; 
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
   
-  // Add controller for custom message
   final TextEditingController _msgController = TextEditingController();
 
   @override
@@ -102,18 +104,19 @@ class _BleScoutScreenState extends State<BleScoutScreen>
         setState(() {
           if (decodedPacket != null) {
             // It was a valid mesh packet
-            final deviceId = decodedPacket['deviceId'];
-            final shortId = deviceId.length >= 6 ? deviceId.substring(0, 6) : deviceId;
-            final text = decodedPacket['message'];
             final time = DateTime.tryParse(decodedPacket['expiresAt']) ?? DateTime.now();
-
             _heartbeats.insert(0, _HeartbeatEntry(
-              message: "[Dev: $shortId] $text", 
-              time: time
+              message: decodedPacket['message'], 
+              time: time,
+              details: decodedPacket,
             ));
           } else {
             // Fallback for random custom messages that lack the "||" formatting
-            _heartbeats.insert(0, _HeartbeatEntry(message: msg, time: DateTime.now()));
+            _heartbeats.insert(0, _HeartbeatEntry(
+              message: msg, 
+              time: DateTime.now(),
+              details: null,
+            ));
           }
 
           if (_heartbeats.length > 50) _heartbeats.removeLast();
@@ -130,6 +133,13 @@ class _BleScoutScreenState extends State<BleScoutScreen>
     _pulseController.dispose();
     _msgController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchDatabaseRecords() async {
+    final records = await getMessages();
+    setState(() {
+      _dbRecords = records;
+    });
   }
 
   @override
@@ -159,6 +169,8 @@ class _BleScoutScreenState extends State<BleScoutScreen>
         return _buildHeartbeatLog();
       case 2:
         return _buildPeripheralControls();
+      case 3:
+        return _buildDatabaseLog();
       default:
         return const SizedBox();
     }
@@ -236,6 +248,8 @@ class _BleScoutScreenState extends State<BleScoutScreen>
                 badge: _heartbeats.isNotEmpty ? _heartbeats.length : null),
             const SizedBox(width: 10),
             _tab(2, 'BROADCAST', Icons.cell_tower),
+            const SizedBox(width: 10),
+            _tab(3, 'DATABASE', Icons.storage),
             const SizedBox(width: 15),
             if (_selectedTab == 0)
               GestureDetector(
@@ -274,7 +288,12 @@ class _BleScoutScreenState extends State<BleScoutScreen>
   Widget _tab(int index, String label, IconData icon, {int? badge}) {
     final active = _selectedTab == index;
     return GestureDetector(
-      onTap: () => setState(() => _selectedTab = index),
+      onTap: () {
+        setState(() => _selectedTab = index);
+        if (index == 3) {
+          _fetchDatabaseRecords();
+        }
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -385,7 +404,6 @@ class _BleScoutScreenState extends State<BleScoutScreen>
               final msg = _msgController.text.trim().isNotEmpty
                   ? _msgController.text
                   : "Manual Alert!";
-              // This single call handles generation, DB saving, transmitting bytes, and returning Hex Formatted string
               final hexCode = await broadcastMessage(msg);
               
               setState(() {
@@ -508,6 +526,64 @@ class _BleScoutScreenState extends State<BleScoutScreen>
     );
   }
 
+  // ── Database log ───────────────────────────────────────────────────────────
+
+  Widget _buildDatabaseLog() {
+    if (_dbRecords.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.storage,
+        title: 'Database is Empty',
+        subtitle: 'No messages have been recorded yet.',
+      );
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Total Records: ${_dbRecords.length}", style: const TextStyle(color: _textSecondary, fontSize: 12)),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: _accent, size: 20),
+                onPressed: _fetchDatabaseRecords,
+              )
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+            itemCount: _dbRecords.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (_, i) {
+              final rec = _dbRecords[i];
+              return Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _divider),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Msg: ${rec['message']}", style: const TextStyle(color: _textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    Text("Dev ID: ${rec['deviceId']}", style: const TextStyle(color: _textSecondary, fontSize: 10)),
+                    Text("Msg ID: ${rec['messageId']}", style: const TextStyle(color: _textSecondary, fontSize: 10)),
+                    Text("Loc: ${rec['location']} | Exp: ${rec['expiresAt']}", style: const TextStyle(color: _textSecondary, fontSize: 10)),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   // ── Heartbeat log ──────────────────────────────────────────────────────────
 
   Widget _buildHeartbeatLog() {
@@ -601,6 +677,13 @@ class _BleScoutScreenState extends State<BleScoutScreen>
               letterSpacing: 1,
             ),
           ),
+          if (latest.details != null) ...[
+            const SizedBox(height: 8),
+            const Divider(color: _green, thickness: 0.2),
+            const SizedBox(height: 4),
+            Text("Dev: ${latest.details!['deviceId']}", style: const TextStyle(color: _green, fontSize: 10)),
+            Text("Loc: ${latest.details!['location']}", style: const TextStyle(color: _green, fontSize: 10)),
+          ]
         ],
       ),
     );
@@ -813,7 +896,7 @@ class _HeartbeatRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final isFirst = index == 0;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -830,18 +913,31 @@ class _HeartbeatRow extends StatelessWidget {
           ),
           Container(
             width: 1,
-            height: 16,
+            height: entry.details != null ? 36 : 16,
             color: _divider,
             margin: const EdgeInsets.symmetric(horizontal: 10),
           ),
           Expanded(
-            child: Text(
-              entry.message,
-              style: TextStyle(
-                fontSize: 12,
-                color: isFirst ? _textPrimary : _textSecondary,
-                letterSpacing: 0.3,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.message,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isFirst ? _textPrimary : _textSecondary,
+                    letterSpacing: 0.3,
+                    fontWeight: isFirst ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                if (entry.details != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    "ID: ${entry.details!['messageId'].substring(0, 8)}... | Loc: ${entry.details!['location']}",
+                    style: const TextStyle(fontSize: 9, color: _textSecondary),
+                  ),
+                ]
+              ],
             ),
           ),
         ],
@@ -856,7 +952,8 @@ class _HeartbeatRow extends StatelessWidget {
 }
 
 class _HeartbeatEntry {
-  const _HeartbeatEntry({required this.message, required this.time});
+  const _HeartbeatEntry({required this.message, required this.time, this.details});
   final String message;
   final DateTime time;
+  final Map<String, dynamic>? details;
 }

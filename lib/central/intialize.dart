@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 
 // ─── Change these to match what your peripheral actually advertises ───────────
 final Guid targetServiceUuid =
@@ -82,19 +83,35 @@ Future<void> connectToDevice(String deviceId) async {
 /// ALL nearby BLE devices are visible).
 Future<void> startAutoScanner() async {
   try {
-    print("⏳ Waiting for Bluetooth to be ON...");
-    await FlutterBluePlus.adapterState
-        .where((s) => s == BluetoothAdapterState.on)
-        .first;
-
     await requestClientPermissions();
+    if (Platform.isAndroid) {
+      final state = await FlutterBluePlus.adapterState.first;
+      if (state != BluetoothAdapterState.on) {
+        print("Bluetooth is off, requesting to turn on...");
+        try {
+          await FlutterBluePlus.turnOn();
+        } catch (e) {
+          print("User refused or unable to turn on BT: $e");
+        }
+      }
+    }
 
-    await _startScan();
+    FlutterBluePlus.adapterState.listen((state) {
+      if (state == BluetoothAdapterState.on) {
+        print("🔵 Bluetooth turned ON -> Starting Scanner");
+        _startScan();
+      } else {
+        print("🔴 Bluetooth turned OFF -> Stopping Scanner");
+        stopScanning();
+        connectedDevice = null;
+        _isConnecting = false;
+      }
+    });
+
   } catch (e) {
     print("❌ startAutoScanner error: $e");
   }
 }
-
 // ─── Scanning ─────────────────────────────────────────────────────────────────
 
 Future<void> _startScan() async {
