@@ -142,6 +142,15 @@ class _BleScoutScreenState extends State<BleScoutScreen>
     });
   }
 
+  void _handleDeviceTap(String id) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Mesh devices are ephemeral! Go to the BROADCAST tab to send a message to all devices.'),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -521,7 +530,7 @@ class _BleScoutScreenState extends State<BleScoutScreen>
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (_, i) => _DeviceCard(
         device: sorted[i],
-        onConnect: connectToDevice,
+        onConnect: _handleDeviceTap,
       ),
     );
   }
