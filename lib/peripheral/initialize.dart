@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:ble_peripheral/ble_peripheral.dart';
 import 'package:ble_peripheral/src/ble_peripheral_interface.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 const String myServiceUuid = "12345678-1234-5678-1234-56789abcdef0";
 const String myCharacteristicUuid = "12345678-1234-5678-1234-56789abcdef1";
+
+// Add a global callback for when a raw string is received via GATT Write
+Function(String rawMessage, String senderDeviceId)? onPeripheralMessageReceived;
 
 Future<void> requestBlePermissions() async {
   await [
@@ -19,8 +24,8 @@ Future<void> setupBlePeripheral() async {
   try {
     await requestBlePermissions();
     await BlePeripheral.initialize();
-    print("BLE INITIALIZED");
-
+    print("BLE INITIALIZED - OPEN GATT");
+    
     // Listen to OS Bluetooth State changes
     BlePeripheral.setBleStateChangeCallback((bool isOn) async {
       print("Bluetooth State Changed: ${isOn ? "ON" : "OFF"}");
@@ -31,14 +36,22 @@ Future<void> setupBlePeripheral() async {
       }
     });
 
-    BlePeripheral.setAdvertisingStatusUpdateCallback((bool advertising, String? error) {
-      print("AdvertisingStatus: $advertising Error: $error");
-    });
-
-    BlePeripheral.setCharacteristicSubscriptionChangeCallback(
-      (String deviceId, String characteristicId, bool isSubscribed, String? name) {
-        print("Device $deviceId ($name) subscription to $characteristicId changed to: $isSubscribed");
-    });
+    BlePeripheral.setWriteRequestCallback(
+      (String deviceId, String characteristicId, int offset, Uint8List? value) {
+        if (characteristicId.toLowerCase() == myCharacteristicUuid.toLowerCase() && value != null) {
+          try {
+            // Data decodes here, passing the '||' delimited format back to mesh
+            String receivedMessage = utf8.decode(value);
+            print("Received Message from $deviceId: $receivedMessage");
+            onPeripheralMessageReceived?.call(receivedMessage, deviceId);
+          } catch (e) {
+            print("Failed to decode written data: $e");
+          }
+          return null; // Acknowledge standard write with no error code
+        }
+        return null;
+      },
+    );
 
     await _startAdvertisingSequence();
     
@@ -52,18 +65,17 @@ Future<void> _startAdvertisingSequence() async {
     await BlePeripheral.clearServices();
     await BlePeripheral.addService(
       BleService(
-         uuid: myServiceUuid,
+        uuid: myServiceUuid,
         primary: true,
         characteristics: [
           BleCharacteristic(
             uuid: myCharacteristicUuid,
             properties: [
-              CharacteristicProperties.read.index,
-              CharacteristicProperties.notify.index 
+              CharacteristicProperties.write.index,
+              CharacteristicProperties.writeWithoutResponse.index,
             ],
             value: null,
             permissions: [
-              AttributePermissions.readable.index,
               AttributePermissions.writeable.index
             ],
           ),
@@ -75,9 +87,7 @@ Future<void> _startAdvertisingSequence() async {
       services: [myServiceUuid],
       localName: "MyBeacon",
     );
-    print("Advertising requested...");
-    // Only start heartbeat if you want it running blindly, otherwise let subscriptions trigger it
-    // startHeartbeat(); 
+    print("Advertising open mailbox...");
   } catch (e) {
     print("Broadcasting deferred: $e");
   }
