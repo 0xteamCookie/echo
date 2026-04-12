@@ -3,6 +3,8 @@ import '../screens/home_screen.dart';
 import '../screens/chat_screen.dart';
 import '../screens/sos_screen.dart';
 import '../screens/devices_screen.dart';
+import '../database/db_hook.dart';
+import '../main.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -27,7 +29,20 @@ class _MainLayoutState extends State<MainLayout> {
         title: const Text('BLE Scout'),
         centerTitle: true,
         actions: [
-          // Hidden device scanner toggle
+          IconButton(
+            icon: const Icon(Icons.delete_forever, color: Colors.black26),
+            onPressed: () async {
+              await nukeDatabase();
+              AppState().chatMessages.value = [];
+              AppState().heartbeats.value = [];
+              
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Database Nuked! Ready for fresh testing.")),
+                );
+              }
+            },
+          ),
           GestureDetector(
             onDoubleTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DevicesScreen())),
             child: const Padding(

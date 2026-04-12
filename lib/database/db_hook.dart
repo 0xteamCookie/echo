@@ -55,3 +55,7 @@ Future<List<Map<String, dynamic>>> getDevicesForMessage(String messageId) async 
     whereArgs: [messageId],
   );
 }
+
+Future<void> nukeDatabase() async {
+  await DatabaseHelper.instance.deleteDb();
+}

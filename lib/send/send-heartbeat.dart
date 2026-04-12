@@ -12,7 +12,7 @@ void startHeartbeat([String customPrefix = "Heartbeat"]) {
 
   heartbeatTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
     String timeStr = DateTime.now().toIso8601String().substring(11, 19);
-    broadcastMessage("$customPrefix: $timeStr");
+    sendNewMessage("$customPrefix: $timeStr");
   });
   print("Heartbeat started with prefix: $customPrefix.");
 }

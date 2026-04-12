@@ -1,8 +1,20 @@
 import '../database/db_hook.dart';
 
 /// Decodes the compact string, saves it to SQLite, and returns the mapped data.
-Future<Map<String, dynamic>?> decodeAndSaveMessage(String rawMessage) async {
+Future<Map<String, dynamic>?> decodeAndSaveMessage(String rawMessage, String senderDeviceId) async {
   try {
+
+    if (rawMessage.startsWith('ACK||')) {
+      final parts = rawMessage.split('||');
+      if (parts.length >= 3) {
+        String ackMessageId = parts[1];
+        String relayerId = parts[2];
+        
+        await insertMessageDevice(messageId: ackMessageId, deviceId: relayerId);
+        print("✅ Acknowledgment saved for Msg: $ackMessageId from $relayerId");
+      }
+      return null;
+    }
     // 1. Split the incoming payload by our delimiter
     final parts = rawMessage.split('||');
     

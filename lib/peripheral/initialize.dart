@@ -35,11 +35,11 @@ Future<void> setupBlePeripheral() async {
       }
     });
 
+    // ...existing code...
     BlePeripheral.setWriteRequestCallback(
       (String deviceId, String characteristicId, int offset, Uint8List? value) {
         if (characteristicId.toLowerCase() == myCharacteristicUuid.toLowerCase() && value != null) {
           try {
-            // Data decodes here, passing the '||' delimited format back to mesh
             String receivedMessage = utf8.decode(value);
             print("Received Message from $deviceId: $receivedMessage");
             onPeripheralMessageReceived?.call(receivedMessage, deviceId);
@@ -51,6 +51,7 @@ Future<void> setupBlePeripheral() async {
         return null;
       },
     );
+// ...existing code...
 
     await _startAdvertisingSequence();
     

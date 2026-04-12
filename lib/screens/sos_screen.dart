@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
-import '../send/send-message.dart';
+import '../send/send-heartbeat.dart';
 
 class SosScreen extends StatelessWidget {
   const SosScreen({super.key});
