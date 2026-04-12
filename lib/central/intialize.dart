@@ -187,3 +187,34 @@ Future<void> blastToEntireMesh(List<int> payloadBytes) async {
   // Resume scanning
   await _startScan();
 }
+
+Future<void> _broadcastMessageToNearbyDevices(
+    String rawData,
+    String messageId,
+) async {
+
+  FlutterBluePlus.startScan(timeout: const Duration(seconds: 4));
+
+  FlutterBluePlus.scanResults.listen((results) async {
+    for (ScanResult result in results) {
+
+      if (_isMeshNode(result)) {
+        String targetDeviceId = result.device.remoteId.str;
+
+        // ✅ Check DB using your helper logic
+        final alreadySent = await _hasDeviceAcknowledged(
+          messageId,
+          targetDeviceId,
+        );
+
+        if (alreadySent) continue;
+
+        await _forwardDataToDevice(
+          result.device,
+          rawData.codeUnits, // convert string → bytes
+          messageId,
+        );
+      }
+    }
+  });
+}
