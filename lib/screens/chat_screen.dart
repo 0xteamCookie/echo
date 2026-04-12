@@ -18,7 +18,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final textToSend = _controller.text;
     _controller.clear();
 
-    await broadcastMessage(textToSend);
+    await sendNewMessage(textToSend);
 
     final list = List<Map<String, dynamic>>.from(AppState().chatMessages.value);
     list.insert(0, {

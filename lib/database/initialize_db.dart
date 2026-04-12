@@ -39,4 +39,16 @@ class DatabaseHelper {
     );
   ''');
   }
+
+  Future<void> deleteDb() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'app.db');
+    
+    if (_database != null && _database!.isOpen) {
+      await _database!.close();
+    }
+    
+    await deleteDatabase(path);
+    _database = null; 
+  }
 } 
