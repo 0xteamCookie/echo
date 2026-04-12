@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'database/db_hook.dart';
 import 'peripheral/initialize.dart';
@@ -31,18 +32,19 @@ void main() async {
     ),
   );
 
-  final savedMessages = await getMessages();
-  AppState().chatMessages.value = savedMessages.reversed.toList();
+  runApp(const MyApp());
 
-  await setupBlePeripheral();
+  SchedulerBinding.instance.addPostFrameCallback((_) {
+    _initializeApp();
+  });
+}
 
-  // Wire up callbacks
+void _initializeApp() async {
   onDeviceListUpdated = (devs) {
     AppState().devices.value = devs;
   };
 
   onPeripheralMessageReceived = (msg, senderHardwareMac) async {
-    // 1. Decode relying entirely on the payload text, not the hardware MAC
     final decoded = await decodeAndSaveMessage(msg, senderHardwareMac);
 
     if (decoded == null) return;
@@ -75,8 +77,12 @@ void main() async {
       AppState().chatMessages.value = list;
     }
   };
+
+  final savedMessages = await getMessages();
+  AppState().chatMessages.value = savedMessages.reversed.toList();
+
+  await setupBlePeripheral();
   startAutoScanner();
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

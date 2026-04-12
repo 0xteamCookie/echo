@@ -3,8 +3,11 @@ import 'package:uuid/uuid.dart';
 
 class DeviceIdManager {
   static const String _deviceIdKey = 'ble_mesh_device_id';
+  static String? _cachedDeviceId;
 
   static Future<String> getDeviceId() async {
+    if (_cachedDeviceId != null) return _cachedDeviceId!;
+
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     
     String? deviceId = prefs.getString(_deviceIdKey);
@@ -18,6 +21,7 @@ class DeviceIdManager {
       await prefs.setString(_deviceIdKey, deviceId);
     }
     
+    _cachedDeviceId = deviceId;
     return deviceId;
   }
 }

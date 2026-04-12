@@ -3,15 +3,21 @@ import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// ─── UUIDs 
+// ─── UUIDs
 final Guid targetServiceUuid = Guid("12345678-1234-5678-1234-56789abcdef0");
 final Guid targetCharacteristicUuid = Guid("12345678-1234-5678-1234-56789abcdefF");
+final String _targetServiceUuidLower = targetServiceUuid.toString().toLowerCase();
+final String _targetCharUuidLower = targetCharacteristicUuid.toString().toLowerCase();
 
 // ─── Callbacks & State 
 final Map<String, Map<String, dynamic>> _seenDevices = {};
 
 StreamSubscription? _scanSubscription;
 bool _isScanning = false;
+bool _scanLoopScheduled = false;
+bool _adapterListenerAttached = false;
+Timer? _scanResultThrottleTimer;
+bool _scanResultDirty = false;
 
 final StreamController<List<Map<String, dynamic>>> _deviceStreamController = StreamController.broadcast();
 Stream<List<Map<String, dynamic>>> get scanResultsStream => _deviceStreamController.stream;
@@ -40,13 +46,16 @@ Future<void> startAutoScanner() async {
       }
     }
 
-    FlutterBluePlus.adapterState.listen((state) {
-      if (state == BluetoothAdapterState.on) {
-        _startScan();
-      } else {
-        stopScanning();
-      }
-    });
+    if (!_adapterListenerAttached) {
+      _adapterListenerAttached = true;
+      FlutterBluePlus.adapterState.listen((state) {
+        if (state == BluetoothAdapterState.on) {
+          _startScan();
+        } else {
+          stopScanning();
+        }
+      });
+    }
   } catch (e) {
     print("❌ startAutoScanner error: $e");
   }
@@ -75,7 +84,13 @@ Future<void> _startScan() async {
 
   FlutterBluePlus.isScanning.where((s) => s == false).first.then((_) {
     _isScanning = false;
-    Future.delayed(const Duration(seconds: 2), _startScan);
+    if (!_scanLoopScheduled) {
+      _scanLoopScheduled = true;
+      Future.delayed(const Duration(seconds: 2), () {
+        _scanLoopScheduled = false;
+        _startScan();
+      });
+    }
   });
 }
 
@@ -91,7 +106,7 @@ void _onScanResult(List<ScanResult> results) {
     // Only add devices that are advertising our Mesh Service UUID
     final advertisedUuids = r.advertisementData.serviceUuids;
     final hasTargetService = advertisedUuids.any(
-      (u) => u.toString().toLowerCase() == targetServiceUuid.toString().toLowerCase(),
+      (u) => u.toString().toLowerCase() == _targetServiceUuidLower,
     );
 
     if (hasTargetService) {
@@ -104,6 +119,15 @@ void _onScanResult(List<ScanResult> results) {
       };
     }
   }
+
+  _scanResultDirty = true;
+  _scanResultThrottleTimer ??= Timer(const Duration(milliseconds: 500), _flushScanResults);
+}
+
+void _flushScanResults() {
+  _scanResultThrottleTimer = null;
+  if (!_scanResultDirty) return;
+  _scanResultDirty = false;
   final devicesList = _seenDevices.values.toList();
   onDeviceListUpdated?.call(devicesList);
   _deviceStreamController.add(devicesList);
@@ -134,9 +158,9 @@ Future<void> dispatchPayloadToDevice(
     List<BluetoothService> services = await device.discoverServices();
 
     for (var service in services) {
-      if (service.uuid.toString().toLowerCase() == targetServiceUuid.toString().toLowerCase()) {
+      if (service.uuid.toString().toLowerCase() == _targetServiceUuidLower) {
         for (var char in service.characteristics) {
-          if (char.uuid.toString().toLowerCase() == targetCharacteristicUuid.toString().toLowerCase()) {
+          if (char.uuid.toString().toLowerCase() == _targetCharUuidLower) {
             
             // 3. Dynamically check what the cached property allows
             bool canWriteNoResponse = char.properties.writeWithoutResponse;

@@ -12,10 +12,7 @@ Function(String rawMessage, String senderDeviceId)? onPeripheralMessageReceived;
 Future<void> requestBlePermissions() async {
   await [
     Permission.bluetooth,
-    Permission.bluetoothScan,
     Permission.bluetoothAdvertise,
-    Permission.bluetoothConnect,
-    Permission.location,
   ].request();
 }
 
