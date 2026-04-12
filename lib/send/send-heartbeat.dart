@@ -1,23 +1,23 @@
-import 'dart:async';
-import 'send-message.dart';
+// import 'dart:async';
+// import 'send-message.dart';
 
-Timer? heartbeatTimer;
+// Timer? heartbeatTimer;
 
-void startHeartbeat([String customPrefix = "Heartbeat"]) {
-  heartbeatTimer?.cancel();
+// void startHeartbeat([String customPrefix = "Heartbeat"]) {
+//   heartbeatTimer?.cancel();
   
-  if (customPrefix.trim().isEmpty) {
-    customPrefix = "Heartbeat";
-  }
+//   if (customPrefix.trim().isEmpty) {
+//     customPrefix = "Heartbeat";
+//   }
 
-  heartbeatTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-    String timeStr = DateTime.now().toIso8601String().substring(11, 19);
-    broadcastMessage("$customPrefix: $timeStr");
-  });
-  print("Heartbeat started with prefix: $customPrefix.");
-}
+//   heartbeatTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+//     String timeStr = DateTime.now().toIso8601String().substring(11, 19);
+//     broadcastMessage("$customPrefix: $timeStr");
+//   });
+//   print("Heartbeat started with prefix: $customPrefix.");
+// }
 
-void stopHeartbeat() {
-  heartbeatTimer?.cancel();
-  print("Heartbeat stopped.");
-}
+// void stopHeartbeat() {
+//   heartbeatTimer?.cancel();
+//   print("Heartbeat stopped.");
+// }

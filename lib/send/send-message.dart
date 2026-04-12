@@ -33,7 +33,7 @@ Future<void> relayMessage(String messageId, String message, String deviceId, Str
   try {
     // 1. Format Message: deviceId||messageId||location||expiresAt||message
     String compactPayload =
-        "${deviceId}||${messageId}||${location}||${expiresAt}||${message}";
+        "$deviceId||$messageId||$location||$expiresAt||$message";
 
     // 2. Convert to Bytes
     List<int> bytes = utf8.encode(compactPayload);

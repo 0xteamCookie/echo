@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
-import '../send/send-message.dart';
 
 class SosScreen extends StatelessWidget {
   const SosScreen({super.key});
@@ -14,29 +13,29 @@ class SosScreen extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF85DCB8),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
-                ),
-                onPressed: () => startHeartbeat("Emergency Heartbeat"), 
-                icon: const Icon(Icons.play_arrow), 
-                label: const Text("Start SOS")
-              ),
+              // ElevatedButton.icon(
+              //   style: ElevatedButton.styleFrom(
+              //     backgroundColor: const Color(0xFF85DCB8),
+              //     foregroundColor: Colors.white,
+              //     elevation: 0,
+              //     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
+              //   ),
+              //   // onPressed: () => startHeartbeat("Emergency Heartbeat"), 
+              //   icon: const Icon(Icons.play_arrow), 
+              //   label: const Text("Start SOS")
+              // ),
               const SizedBox(width: 16),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent.withOpacity(0.8),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
-                ),
-                onPressed: () => stopHeartbeat(), 
-                icon: const Icon(Icons.stop), 
-                label: const Text("Stop")
-              ),
+              // ElevatedButton.icon(
+              //   style: ElevatedButton.styleFrom(
+              //     backgroundColor: Colors.redAccent.withOpacity(0.8),
+              //     foregroundColor: Colors.white,
+              //     elevation: 0,
+              //     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
+              //   ),
+              //   // onPressed: () => stopHeartbeat(), 
+              //   icon: const Icon(Icons.stop), 
+              //   label: const Text("Stop")
+              // ),
             ],
           ),
         ),
