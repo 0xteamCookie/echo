@@ -3,6 +3,7 @@ import 'dart:async';
 import '../central/intialize.dart';
 import '../database/db_hook.dart';
 import '../packet/generate-packet.dart';
+import '../mesh/ble-collisions.dart';
 
 Future<void> sendNewMessage(String textMessage) async {
   try {
@@ -39,6 +40,9 @@ Future<void> relayMessage(String messageId, String message, String deviceId, Str
     final devicesThatNeedMessage = <String>[];
     for (var device in devices) {
       final String targetDeviceId = device['id'];
+      
+      if (BleCollisionManager.shouldSkip(targetDeviceId)) continue;
+
       final alreadySent = await _hasAcknowledged(messageId, targetDeviceId);
       if (!alreadySent) {
         devicesThatNeedMessage.add(targetDeviceId);

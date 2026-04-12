@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../mesh/ble-collisions.dart';
 
 // ─── UUIDs
 final Guid targetServiceUuid = Guid("12345678-1234-5678-1234-56789abcdef0");
@@ -189,6 +190,7 @@ Future<bool> dispatchPayloadToDevice(
     return false;
   } catch (e) {
     print("❌ Failed to send to $deviceId: $e");
+    BleCollisionManager.recordFailure(deviceId);
     try {
       await device.disconnect();
     } catch (_) {}
