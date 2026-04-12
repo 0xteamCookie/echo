@@ -56,6 +56,22 @@ Future<List<Map<String, dynamic>>> getDevicesForMessage(String messageId) async 
   );
 }
 
+Future<List<Map<String, dynamic>>> getAllMessageDevices() async {
+  final db = await DatabaseHelper.instance.database;
+  return await db.query('message_devices');
+}
+
+Future<List<Map<String, dynamic>>> getNonExpiredMessages() async {
+  final db = await DatabaseHelper.instance.database;
+  final now = DateTime.now().toUtc().toIso8601String();
+
+  return await db.query(
+    'messages',
+    where: 'expiresAt > ?',
+    whereArgs: [now],
+  );
+}
+
 Future<void> nukeDatabase() async {
   await DatabaseHelper.instance.deleteDb();
 }

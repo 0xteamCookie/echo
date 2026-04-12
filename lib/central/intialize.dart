@@ -138,7 +138,7 @@ List<Map<String, dynamic>> getCurrentScanResults() {
   return _seenDevices.values.toList();
 }
 
-Future<void> dispatchPayloadToDevice(
+Future<bool> dispatchPayloadToDevice(
   String deviceId,
   List<int> payloadBytes,
 ) async {
@@ -178,7 +178,7 @@ Future<void> dispatchPayloadToDevice(
 
             // 4. Disconnect immediately to free up the radio
             await device.disconnect();
-            return;
+            return true;
           }
         }
       }
@@ -186,11 +186,13 @@ Future<void> dispatchPayloadToDevice(
 
     print("❌ Characteristic not found on $deviceId");
     await device.disconnect();
+    return false;
   } catch (e) {
     print("❌ Failed to send to $deviceId: $e");
     try {
       await device.disconnect();
     } catch (_) {}
+    return false;
   }
 }
 

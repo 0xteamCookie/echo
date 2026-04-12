@@ -4,7 +4,6 @@ import '../central/intialize.dart';
 import '../database/db_hook.dart';
 import '../packet/generate-packet.dart';
 
-/// Generates variables, saves to DB, transmits over BLE, and returns a Hex String
 Future<void> sendNewMessage(String textMessage) async {
   try {
     // 1. Get variables
@@ -13,15 +12,13 @@ Future<void> sendNewMessage(String textMessage) async {
     // 2. Save directly to SQLite
     await insertMessage(packetMap);
 
-    // 3. Compact encode to save BLE space (Format: deviceId||messageId||location||expiresAt||message)
+    // 3. Format Message: deviceId||messageId||location||expiresAt||message
     String compactPayload =
         "${packetMap['deviceId']}||${packetMap['messageId']}||${packetMap['location']}||${packetMap['expiresAt']}||${packetMap['message']}";
 
-    // 4. Convert to Bytes
     List<int> bytes = utf8.encode(compactPayload);
 
-    // 5. Connect to all discovered mesh nodes
-    await blastToEntireMesh(bytes);
+    await relayMessage(packetMap['messageId'], packetMap['message'], packetMap['deviceId'], packetMap['expiresAt'], packetMap['location']);
 
   } catch (e) {
     print("Failed to save and broadcast message: $e");
@@ -31,26 +28,38 @@ Future<void> sendNewMessage(String textMessage) async {
 Future<void> relayMessage(String messageId, String message, String deviceId, String expiresAt, String location) async {
   try {
     // 1. Format Message: deviceId||messageId||location||expiresAt||message
-    String compactPayload =
-        "$deviceId||$messageId||$location||$expiresAt||$message";
+    String compactPayload = "$deviceId||$messageId||$location||$expiresAt||$message";
 
-    // 2. Convert to Bytes
     List<int> bytes = utf8.encode(compactPayload);
+    print("Byte size of relayed packet: ${bytes.length} bytes");
 
-    // 3. Scan the mesh and send message
     final devices = getCurrentScanResults();
+    if (devices.isEmpty) return;
 
+    final devicesThatNeedMessage = <String>[];
     for (var device in devices) {
       final String targetDeviceId = device['id'];
-
       final alreadySent = await _hasAcknowledged(messageId, targetDeviceId);
-
-      if (alreadySent) continue;
-
-      await dispatchPayloadToDevice(targetDeviceId, bytes);
+      if (!alreadySent) {
+        devicesThatNeedMessage.add(targetDeviceId);
+      }
     }
+
+    if (devicesThatNeedMessage.isEmpty) return;
+
+    await stopScanning(); 
+
+    for (final targetDeviceId in devicesThatNeedMessage) {
+      final success = await dispatchPayloadToDevice(targetDeviceId, bytes);
+      if (success) {
+        await insertMessageDevice(messageId: messageId, deviceId: targetDeviceId);
+      }
+    }
+    
+    await restartScan(); 
   } catch (e) {
     print("Failed to save and broadcast message: $e");
+    await restartScan(); 
   }
 }
 

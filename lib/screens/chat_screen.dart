@@ -60,6 +60,11 @@ class _ChatScreenState extends State<ChatScreen> {
                         const SizedBox(height: 8),
                         Text("From: ${msg['deviceId']} • ${msg['time'] ?? 'Just now'}", 
                           style: const TextStyle(fontSize: 10, color: Colors.black38)),
+                        Text("Relayed by: ${msg['relayerMac'] ?? 'Direct'}", 
+                          style: const TextStyle(fontSize: 10, color: Colors.black38)),
+                        if (msg['messageId'] != null)
+                          Text("MsgID: ${msg['messageId']} ", 
+                            style: const TextStyle(fontSize: 10, color: Colors.blueGrey)),
                       ],
                     ),
                   );

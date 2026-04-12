@@ -3,6 +3,7 @@ import '../screens/home_screen.dart';
 import '../screens/chat_screen.dart';
 import '../screens/sos_screen.dart';
 import '../screens/devices_screen.dart';
+import '../screens/ack_db_screen.dart';
 import '../database/db_hook.dart';
 import '../main.dart';
 
@@ -29,6 +30,12 @@ class _MainLayoutState extends State<MainLayout> {
         title: const Text('BLE Scout'),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.list_alt, color: Colors.black26),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AckDbScreen()));
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.delete_forever, color: Colors.black26),
             onPressed: () async {

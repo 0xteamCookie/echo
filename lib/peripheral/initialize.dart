@@ -57,6 +57,10 @@ Future<void> setupBlePeripheral() async {
 
 Future<void> _startAdvertisingSequence() async {
   try {
+    try {
+      await BlePeripheral.stopAdvertising();
+    } catch (_) {}
+    
     await BlePeripheral.clearServices();
     await BlePeripheral.addService(
       BleService(

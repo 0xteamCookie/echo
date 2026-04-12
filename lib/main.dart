@@ -7,6 +7,7 @@ import 'central/intialize.dart';
 import 'recieve/recieve-message.dart';
 import 'packet/get-deviceID.dart'; 
 import 'layout/main_layout.dart';
+import 'mesh/decision-relay.dart';
 
 // ─── Global State ───────────────────────────────────────────────────────────
 class AppState {
@@ -50,19 +51,22 @@ void _initializeApp() async {
     if (decoded == null) return;
 
     if (decoded['messageId'] != null) {
-      String myDeviceId = await DeviceIdManager.getDeviceId();
-      
-      String ackPayload = "ACK||${decoded['messageId']}||$myDeviceId";
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        dispatchPayloadToDevice(senderHardwareMac, ackPayload.codeUnits);
-      });
+      // Remember we got this from senderHardwareMac so we don't bounce it back to them
+      await insertMessageDevice(
+        messageId: decoded['messageId'],
+        deviceId: senderHardwareMac,
+      );
     }
+
+    // Only propagate completely new messages to the UI list
+    if (decoded['isNew'] == false) return;
 
     final isHeartbeat =
         (decoded['message'].toString().contains('Heartbeat')) ||
         msg.toString().contains('Heartbeat');
 
     final payload = decoded;
+    payload['relayerMac'] = senderHardwareMac; // Add relayer MAC for UI display
 
     if (isHeartbeat) {
       final list = List<Map<String, dynamic>>.from(AppState().heartbeats.value);
@@ -83,6 +87,7 @@ void _initializeApp() async {
 
   await setupBlePeripheral();
   startAutoScanner();
+  startRelayLoop();
 }
 
 class MyApp extends StatelessWidget {

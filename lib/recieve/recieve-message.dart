@@ -20,7 +20,7 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(String rawMessage, String sen
     
     // 2. Ensure it matches our expected 5-part format
     if (parts.length == 5) {
-      final packetMap = {
+      final Map<String, dynamic> packetMap = {
         'deviceId': parts[0],
         'messageId': parts[1],
         'location': parts[2],
@@ -28,10 +28,17 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(String rawMessage, String sen
         'message': parts[4],
       };
       
-      // 3. Save the received packet into SQLite
-      await insertMessage(packetMap);
+      final exists = await messageExists(parts[1]);
       
-      // 4. Return the map so the UI can display it
+      if (!exists) {
+        // 3. Save the received packet into SQLite only if new
+        await insertMessage(packetMap);
+        packetMap['isNew'] = true;
+      } else {
+        packetMap['isNew'] = false;
+      }
+      
+      // 4. Return the map so the UI can process it
       return packetMap;
     }
     
