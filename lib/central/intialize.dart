@@ -122,6 +122,9 @@ Future<void> dispatchPayloadToDevice(
   try {
     print("🚀 Delivering mail to $deviceId...");
 
+    await FlutterBluePlus.stopScan();
+    await Future.delayed(const Duration(milliseconds: 200));
+
     // 1. Connect temporarily
     await device.connect(autoConnect: false, license: License.free);
 
