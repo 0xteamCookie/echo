@@ -13,23 +13,29 @@ Future<void> sendNewMessage(String textMessage) async {
     // 2. Save directly to SQLite
     await insertMessage(packetMap);
 
-    // 3. Format Message: deviceId||messageId||location||expiresAt||message
-    String compactPayload =
-        "${packetMap['deviceId']}||${packetMap['messageId']}||${packetMap['location']}||${packetMap['expiresAt']}||${packetMap['message']}";
+    // 3. Format Message: messageId||message||deviceId||senderName||expiresAt||location
+    String compactPayload = "${packetMap['messageId']}||${packetMap['message']}||${packetMap['deviceId']}||${packetMap['senderName']}||${packetMap['expiresAt']}||${packetMap['location']}";
 
     List<int> bytes = utf8.encode(compactPayload);
 
-    await relayMessage(packetMap['messageId'], packetMap['message'], packetMap['deviceId'], packetMap['expiresAt'], packetMap['location']);
-
+    await relayMessage(
+      packetMap['messageId'],
+      packetMap['message'],
+      packetMap['deviceId'],
+      packetMap['senderName'],
+      packetMap['expiresAt'],
+      packetMap['location'],
+    );
   } catch (e) {
     print("Failed to save and broadcast message: $e");
   }
 }
 
-Future<void> relayMessage(String messageId, String message, String deviceId, String expiresAt, String location) async {
+Future<void> relayMessage( String messageId, String message, String deviceId, String senderName, String expiresAt, String location
+) async {
   try {
-    // 1. Format Message: deviceId||messageId||location||expiresAt||message
-    String compactPayload = "$deviceId||$messageId||$location||$expiresAt||$message";
+    // 1. Format Message: messageId||message||deviceId||senderName||expiresAt||location
+    String compactPayload = "$messageId||$message||$deviceId||$senderName||$expiresAt||$location";
 
     List<int> bytes = utf8.encode(compactPayload);
     print("Byte size of relayed packet: ${bytes.length} bytes");
@@ -67,10 +73,7 @@ Future<void> relayMessage(String messageId, String message, String deviceId, Str
   }
 }
 
-Future<bool> _hasAcknowledged(
-  String messageId,
-  String deviceId,
-) async {
+Future<bool> _hasAcknowledged(String messageId, String deviceId) async {
   final devices = await getDevicesForMessage(messageId);
   return devices.any((d) => d['deviceId'] == deviceId);
 }

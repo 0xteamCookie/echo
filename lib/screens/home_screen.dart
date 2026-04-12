@@ -9,7 +9,7 @@ class HomeScreen extends StatelessWidget {
       padding: const EdgeInsets.all(20.0),
       children: [
         const Text(
-          "Good Morning,", 
+          "Announcements", 
           style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4A4A4A)),
         ),
         const SizedBox(height: 20),

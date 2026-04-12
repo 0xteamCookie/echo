@@ -26,6 +26,7 @@ class DatabaseHelper {
       messageId TEXT PRIMARY KEY,
       message TEXT,
       deviceId TEXT,
+      senderName TEXT,
       expiresAt TEXT,
       location TEXT
     );

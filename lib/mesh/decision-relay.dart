@@ -36,11 +36,12 @@ Future<void> _relayTick() async {
       final messageId = msg['messageId'] as String;
       final message = msg['message'] as String;
       final deviceId = msg['deviceId'] as String;
+      final senderName = msg['senderName'] as String;
       final expiresAt = msg['expiresAt'] as String;
       final location = msg['location'] as String;
 
       // Relay with original sender's deviceId to preserve message provenance
-      await relayMessage(messageId, message, deviceId, expiresAt, location);
+      await relayMessage(messageId, message, deviceId, senderName, expiresAt, location);
     }
   } catch (e) {
     print("Relay tick error: $e");
