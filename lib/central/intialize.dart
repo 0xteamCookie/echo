@@ -1,19 +1,22 @@
+import 'dart:io';
 import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:io';
 
 // ─── UUIDs 
 final Guid targetServiceUuid = Guid("12345678-1234-5678-1234-56789abcdef0");
 final Guid targetCharacteristicUuid = Guid("12345678-1234-5678-1234-56789abcdefF");
 
 // ─── Callbacks & State 
-Function(String message)? onMessageReceived;
-Function(List<Map<String, dynamic>> devices)? onDeviceListUpdated;
-
 final Map<String, Map<String, dynamic>> _seenDevices = {};
+
 StreamSubscription? _scanSubscription;
 bool _isScanning = false;
+
+final StreamController<List<Map<String, dynamic>>> _deviceStreamController = StreamController.broadcast();
+Stream<List<Map<String, dynamic>>> get scanResultsStream => _deviceStreamController.stream;
+    
+Function(List<Map<String, dynamic>> devices)? onDeviceListUpdated;
 
 // ─── Permissions 
 Future<void> requestClientPermissions() async {
@@ -24,7 +27,7 @@ Future<void> requestClientPermissions() async {
   ].request();
 }
 
-// ─── Scanner (Just builds a list of nearby Mailboxes) 
+// ─── Scanner
 Future<void> startAutoScanner() async {
   try {
     await requestClientPermissions();
@@ -99,15 +102,18 @@ void _onScanResult(List<ScanResult> results) {
         'serviceUuids': advertisedUuids.map((u) => u.toString()).toList(),
         'connected': false,
       };
-      onDeviceListUpdated?.call(_seenDevices.values.toList());
     }
   }
+  final devicesList = _seenDevices.values.toList();
+  onDeviceListUpdated?.call(devicesList);
+  _deviceStreamController.add(devicesList);
 }
 
-// ─── Mailman: Connect, Write, Disconnect 
+// Get list of devices within range
+List<Map<String, dynamic>> getCurrentScanResults() {
+  return _seenDevices.values.toList();
+}
 
-/// This function is called when you want to send a message.
-/// It connects to a target device, drops the payload in the writeable characteristic, and disconnects.
 Future<void> dispatchPayloadToDevice(
   String deviceId,
   List<int> payloadBytes,
@@ -115,13 +121,18 @@ Future<void> dispatchPayloadToDevice(
   BluetoothDevice device = BluetoothDevice.fromId(deviceId);
 
   try {
-    print("🚀 Delivering mail to $deviceId...");
+    print("🚀 Sending to $deviceId...");
 
-    // 1. Connect temporarily with a short timeout so offline devices don't stall the loop
-    await device.connect(autoConnect: false, license: License.free, timeout: const Duration(seconds: 4));
+    // 1. Connect temporarily with a short timeout
+    await device.connect(
+      autoConnect: false,
+      license: License.free, 
+      timeout: const Duration(seconds: 4),
+    );
 
-    // 2. Discover target service/characteristic (Extremely fast now because we use Android's cache)
+    // 2. Discover target service/characteristic
     List<BluetoothService> services = await device.discoverServices();
+
     for (var service in services) {
       if (service.uuid.toString().toLowerCase() == targetServiceUuid.toString().toLowerCase()) {
         for (var char in service.characteristics) {
@@ -133,12 +144,12 @@ Future<void> dispatchPayloadToDevice(
 
             if (canWriteNoResponse || canWrite) {
               await char.write(payloadBytes, withoutResponse: canWriteNoResponse);
-              print("✅ Mail delivered successfully to $deviceId!");
+              print("✅ Sent successfully to $deviceId!");
             } else {
-              print("❌ Cached characteristic has NO write properties! Toggle Bluetooth on BOTH phones.");
+              print("❌ NO write permission on $deviceId");
             }
 
-            // Tiny delay to let the radio buffer flush down to the hardware
+            // Delay to let the radio buffer flush down to the hardware
             await Future.delayed(const Duration(milliseconds: 50));
 
             // 4. Disconnect immediately to free up the radio
@@ -149,56 +160,21 @@ Future<void> dispatchPayloadToDevice(
       }
     }
 
-    print("❌ Mailbox characteristic not found on $deviceId");
+    print("❌ Characteristic not found on $deviceId");
     await device.disconnect();
   } catch (e) {
-    print("❌ Failed to deliver mail to $deviceId: $e");
+    print("❌ Failed to send to $deviceId: $e");
     try {
       await device.disconnect();
     } catch (_) {}
   }
 }
 
-/// Helper function to blast a message to ALL discovered mesh nodes
+/// Blast a message to ALL discovered mesh nodes
 Future<void> blastToEntireMesh(List<int> payloadBytes) async {
-  // Pause scanning while transmitting so radio isn't overwhelmed
   await stopScanning();
-
   for (String deviceId in _seenDevices.keys) {
     await dispatchPayloadToDevice(deviceId, payloadBytes);
   }
-
-  // Resume scanning after all messages are sent
   await _startScan();
-}
-
-Future<void> _broadcastMessageToNearbyDevices(
-    String rawData,
-    String messageId,
-) async {
-
-  FlutterBluePlus.startScan(timeout: const Duration(seconds: 4));
-
-  FlutterBluePlus.scanResults.listen((results) async {
-    for (ScanResult result in results) {
-
-      if (_isMeshNode(result)) {
-        String targetDeviceId = result.device.remoteId.str;
-
-        // ✅ Check DB using your helper logic
-        final alreadySent = await _hasDeviceAcknowledged(
-          messageId,
-          targetDeviceId,
-        );
-
-        if (alreadySent) continue;
-
-        await _forwardDataToDevice(
-          result.device,
-          rawData.codeUnits, // convert string → bytes
-          messageId,
-        );
-      }
-    }
-  });
 }

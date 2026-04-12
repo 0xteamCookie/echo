@@ -1,4 +1,4 @@
-Future<Map<String, dynamic>?> decodeAndSaveMessage(String rawMessage) async {
+Future<Map<String, dynamic>?> decodeMessage(String rawMessage) async {
   try {
     // Split the incoming payload by our delimiter
     final parts = rawMessage.split('||');
