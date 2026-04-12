@@ -4,6 +4,7 @@ import 'database/db_hook.dart';
 import 'peripheral/initialize.dart';
 import 'central/intialize.dart';
 import 'recieve/recieve-message.dart';
+import 'packet/get-deviceID.dart'; 
 import 'layout/main_layout.dart';
 
 // ─── Global State ───────────────────────────────────────────────────────────
@@ -40,20 +41,26 @@ void main() async {
     AppState().devices.value = devs;
   };
 
-  onPeripheralMessageReceived = (msg, senderDeviceId) async {
-    final decoded = await decodeAndSaveMessage(msg);
+  onPeripheralMessageReceived = (msg, senderHardwareMac) async {
+    // 1. Decode relying entirely on the payload text, not the hardware MAC
+    final decoded = await decodeAndSaveMessage(msg, senderHardwareMac);
+
+    if (decoded == null) return;
+
+    if (decoded['messageId'] != null) {
+      String myDeviceId = await DeviceIdManager.getDeviceId();
+      
+      String ackPayload = "ACK||${decoded['messageId']}||$myDeviceId";
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        dispatchPayloadToDevice(senderHardwareMac, ackPayload.codeUnits);
+      });
+    }
+
     final isHeartbeat =
-        (decoded != null &&
-            decoded['message'].toString().contains('Heartbeat')) ||
+        (decoded['message'].toString().contains('Heartbeat')) ||
         msg.toString().contains('Heartbeat');
 
-    final payload =
-        decoded ??
-        {
-          'message': msg,
-          'deviceId': 'Unknown',
-          'time': DateTime.now().toIso8601String(),
-        };
+    final payload = decoded;
 
     if (isHeartbeat) {
       final list = List<Map<String, dynamic>>.from(AppState().heartbeats.value);
