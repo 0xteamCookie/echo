@@ -1,14 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
 // ─── UUIDs 
 final Guid targetServiceUuid = Guid("12345678-1234-5678-1234-56789abcdef0");
-final Guid targetCharacteristicUuid = Guid(
-  "12345678-1234-5678-1234-56789abcdef1",
-);
+final Guid targetCharacteristicUuid = Guid("12345678-1234-5678-1234-56789abcdefF");
 
 // ─── Callbacks & State 
 Function(String message)? onMessageReceived;
@@ -91,9 +88,7 @@ void _onScanResult(List<ScanResult> results) {
     // Only add devices that are advertising our Mesh Service UUID
     final advertisedUuids = r.advertisementData.serviceUuids;
     final hasTargetService = advertisedUuids.any(
-      (u) =>
-          u.toString().toLowerCase() ==
-          targetServiceUuid.toString().toLowerCase(),
+      (u) => u.toString().toLowerCase() == targetServiceUuid.toString().toLowerCase(),
     );
 
     if (hasTargetService) {
@@ -109,7 +104,7 @@ void _onScanResult(List<ScanResult> results) {
   }
 }
 
-//  Mailman: Connect, Write, Disconnect 
+// ─── Mailman: Connect, Write, Disconnect 
 
 /// This function is called when you want to send a message.
 /// It connects to a target device, drops the payload in the writeable characteristic, and disconnects.
@@ -122,27 +117,15 @@ Future<void> dispatchPayloadToDevice(
   try {
     print("🚀 Delivering mail to $deviceId...");
 
-    // 1. Connect temporarily
-    await device.connect(autoConnect: false, license: License.free);
+    // 1. Connect temporarily with a short timeout so offline devices don't stall the loop
+    await device.connect(autoConnect: false, license: License.free, timeout: const Duration(seconds: 4));
 
-    // Force Android to fetch the latest characteristic properties (Clear Cache)
-    if (Platform.isAndroid) {
-      try {
-        await device.clearGattCache();
-      } catch (_) {}
-    }
-
-    // Give Android BLE stack a moment to stabilize the connection
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    // 2. Discover target service/characteristic
+    // 2. Discover target service/characteristic (Extremely fast now because we use Android's cache)
     List<BluetoothService> services = await device.discoverServices();
     for (var service in services) {
-      if (service.uuid.toString().toLowerCase() ==
-          targetServiceUuid.toString().toLowerCase()) {
+      if (service.uuid.toString().toLowerCase() == targetServiceUuid.toString().toLowerCase()) {
         for (var char in service.characteristics) {
-          if (char.uuid.toString().toLowerCase() ==
-              targetCharacteristicUuid.toString().toLowerCase()) {
+          if (char.uuid.toString().toLowerCase() == targetCharacteristicUuid.toString().toLowerCase()) {
             
             // 3. Dynamically check what the cached property allows
             bool canWriteNoResponse = char.properties.writeWithoutResponse;
@@ -155,10 +138,10 @@ Future<void> dispatchPayloadToDevice(
               print("❌ Cached characteristic has NO write properties! Toggle Bluetooth on BOTH phones.");
             }
 
-            // Give the radio time to actually transmit the packet before severing the connection
-            await Future.delayed(const Duration(milliseconds: 500));
+            // Tiny delay to let the radio buffer flush down to the hardware
+            await Future.delayed(const Duration(milliseconds: 50));
 
-            // 4. Disconnect to free up the radio
+            // 4. Disconnect immediately to free up the radio
             await device.disconnect();
             return;
           }
@@ -175,6 +158,7 @@ Future<void> dispatchPayloadToDevice(
     } catch (_) {}
   }
 }
+
 /// Helper function to blast a message to ALL discovered mesh nodes
 Future<void> blastToEntireMesh(List<int> payloadBytes) async {
   // Pause scanning while transmitting so radio isn't overwhelmed
@@ -184,7 +168,7 @@ Future<void> blastToEntireMesh(List<int> payloadBytes) async {
     await dispatchPayloadToDevice(deviceId, payloadBytes);
   }
 
-  // Resume scanning
+  // Resume scanning after all messages are sent
   await _startScan();
 }
 
