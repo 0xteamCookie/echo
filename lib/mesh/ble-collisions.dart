@@ -11,12 +11,10 @@ class BleCollisionManager {
     if (!_backoffList.containsKey(deviceId)) return false;
     
     final lastFailure = _backoffList[deviceId]!;
-    // If it failed in the last 45 seconds, skip it so we don't clog the radio
-    if (DateTime.now().difference(lastFailure).inSeconds < 45) {
+    if (DateTime.now().difference(lastFailure).inSeconds < 10) {
       return true;
     }
     
-    // Backoff expired, let it try connecting again
     _backoffList.remove(deviceId);
     return false;
   }

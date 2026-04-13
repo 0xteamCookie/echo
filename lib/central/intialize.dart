@@ -76,22 +76,38 @@ Future<void> restartScan() async {
 
 Future<void> _startScan() async {
   if (_isScanning) return;
+  
+  if (FlutterBluePlus.adapterStateNow != BluetoothAdapterState.on) {
+    print("⚠️ [_startScan] Aborting: Bluetooth is not ON.");
+    return;
+  }
+
   _isScanning = true;
   await _scanSubscription?.cancel();
-
   _scanSubscription = FlutterBluePlus.onScanResults.listen(_onScanResult);
 
-  await FlutterBluePlus.startScan(timeout: const Duration(seconds: 30));
+  try {
+    await FlutterBluePlus.startScan(timeout: const Duration(seconds: 30));
+  } catch (e) {
+    print("❌ [_startScan] Failed to start scan: $e");
+    _isScanning = false;
+    return;
+  }
 
+  // Hook to restart scanning after timeout
   FlutterBluePlus.isScanning.where((s) => s == false).first.then((_) {
     _isScanning = false;
     if (!_scanLoopScheduled) {
       _scanLoopScheduled = true;
       Future.delayed(const Duration(seconds: 2), () {
         _scanLoopScheduled = false;
-        _startScan();
+        if (FlutterBluePlus.adapterStateNow == BluetoothAdapterState.on) {
+          _startScan();
+        }
       });
     }
+  }).catchError((_) {
+    _isScanning = false;
   });
 }
 
@@ -146,7 +162,7 @@ Future<bool> dispatchPayloadToDevice(
   BluetoothDevice device = BluetoothDevice.fromId(deviceId);
 
   try {
-    print("🚀 Sending to $deviceId...");
+    print("🔌 [dispatchPayload] Dialing MAC: $deviceId...");
 
     // 1. Connect temporarily with a short timeout
     await device.connect(
@@ -169,9 +185,9 @@ Future<bool> dispatchPayloadToDevice(
 
             if (canWriteNoResponse || canWrite) {
               await char.write(payloadBytes, withoutResponse: canWriteNoResponse);
-              print("✅ Sent successfully to $deviceId!");
+              print("✅ [dispatchPayload] SUCCESS: Transmitted ${payloadBytes.length} bytes to $deviceId!");
             } else {
-              print("❌ NO write permission on $deviceId");
+              print("❌ [dispatchPayload] FAILED: Characteristic lacks write properties on $deviceId");
             }
 
             // Delay to let the radio buffer flush down to the hardware
@@ -185,11 +201,11 @@ Future<bool> dispatchPayloadToDevice(
       }
     }
 
-    print("❌ Characteristic not found on $deviceId");
+    print("❌ [dispatchPayload] FAILED: Target characteristic not found on $deviceId");
     await device.disconnect();
     return false;
   } catch (e) {
-    print("❌ Failed to send to $deviceId: $e");
+    print("🔥 [dispatchPayload] FATAL: Hardware exception on $deviceId: $e");
     BleCollisionManager.recordFailure(deviceId);
     try {
       await device.disconnect();
