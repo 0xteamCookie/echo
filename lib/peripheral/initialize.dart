@@ -62,6 +62,7 @@ Future<void> _startAdvertisingSequence() async {
     } catch (_) {}
     
     await BlePeripheral.clearServices();
+    await Future.delayed(const Duration(milliseconds: 500)); 
     await BlePeripheral.addService(
       BleService(
         uuid: myServiceUuid,
