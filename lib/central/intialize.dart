@@ -164,6 +164,16 @@ Future<bool> dispatchPayloadToDevice(
   try {
     print("🔌 [dispatchPayload] Dialing MAC: $deviceId...");
 
+    // Clear caches and bonds to prevent OS-level Pairing prompts on Android
+    if (Platform.isAndroid) {
+      try {
+        await device.removeBond();
+      } catch (_) {}
+      try {
+        await device.clearGattCache();
+      } catch (_) {}
+    }
+
     // 1. Connect temporarily with a short timeout
     await device.connect(
       autoConnect: false,
@@ -184,7 +194,7 @@ Future<bool> dispatchPayloadToDevice(
             bool canWrite = char.properties.write;
 
             if (canWriteNoResponse || canWrite) {
-              await char.write(payloadBytes, withoutResponse: canWriteNoResponse);
+              await char.write(payloadBytes, withoutResponse: true);
               print("✅ [dispatchPayload] SUCCESS: Transmitted ${payloadBytes.length} bytes to $deviceId!");
             } else {
               print("❌ [dispatchPayload] FAILED: Characteristic lacks write properties on $deviceId");

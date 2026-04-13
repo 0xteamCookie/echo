@@ -70,7 +70,6 @@ Future<void> _startAdvertisingSequence() async {
           BleCharacteristic(
             uuid: myCharacteristicUuid,
             properties: [
-              CharacteristicProperties.write.index,
               CharacteristicProperties.writeWithoutResponse.index,
             ],
             value: null,
