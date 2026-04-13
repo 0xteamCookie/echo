@@ -21,14 +21,35 @@ class DatabaseHelper {
   }
 
   Future _createDB(Database db, int version) async {
-    await db.execute('''
+  await db.execute('''
     CREATE TABLE messages (
       messageId TEXT PRIMARY KEY,
       message TEXT,
       deviceId TEXT,
+      senderName TEXT,
       expiresAt TEXT,
       location TEXT
-    )
+    );
   ''');
+
+  await db.execute('''
+    CREATE TABLE message_devices (
+      messageId TEXT,
+      deviceId TEXT,
+      PRIMARY KEY (messageId, deviceId)
+    );
+  ''');
+  }
+
+  Future<void> deleteDb() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'app.db');
+    
+    if (_database != null && _database!.isOpen) {
+      await _database!.close();
+    }
+    
+    await deleteDatabase(path);
+    _database = null; 
   }
 } 

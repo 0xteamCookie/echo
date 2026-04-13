@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import '../screens/messaging_screen.dart';
 import '../screens/home_screen.dart';
-import '../screens/chatbot_screen.dart';
-import '../screens/map_screen.dart';
+import '../screens/chat_screen.dart';
 import '../screens/sos_screen.dart';
+import '../screens/devices_screen.dart';
+import '../screens/ack_db_screen.dart';
+import '../database/db_hook.dart';
+import '../main.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -13,55 +15,68 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  int _currentIndex = 2; 
+  int _currentIndex = 1; 
 
   final List<Widget> _screens = [
-    const MessagingScreen(),
-    const ChatbotScreen(),
-    const HomeScreen(),
-    const MapScreen(),
     const SosScreen(),
+    const HomeScreen(),
+    const ChatScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_currentIndex],
-      
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.black54,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.message),
-            label: 'Messaging',
+      appBar: AppBar(
+        title: const Text('BLE Scout'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.list_alt, color: Colors.black26),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AckDbScreen()));
+            },
           ),
-         
-          BottomNavigationBarItem(
-            icon: Icon(Icons.smart_toy), 
-            label: 'Chatbot',
+          IconButton(
+            icon: const Icon(Icons.delete_forever, color: Colors.black26),
+            onPressed: () async {
+              await nukeDatabase();
+              AppState().chatMessages.value = [];
+              AppState().heartbeats.value = [];
+              
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Database Nuked! Ready for fresh testing.")),
+                );
+              }
+            },
           ),
-           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map),
-            label: 'Map',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.warning_amber_rounded), // SOS icon
-            label: 'SOS',
-          ),
+          GestureDetector(
+            onDoubleTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DevicesScreen())),
+            child: const Padding(
+              padding: EdgeInsets.only(right: 16.0),
+              child: Icon(Icons.blur_on, color: Colors.black26), // Subtle icon
+            ),
+          )
         ],
+      ),
+      body: _screens[_currentIndex],
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          backgroundColor: Colors.white,
+          selectedItemColor: const Color(0xFFE27D60),
+          unselectedItemColor: Colors.black38,
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: 'SOS'),
+            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'Chat'),
+          ],
+        ),
       ),
     );
   }

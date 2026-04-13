@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:ble_peripheral/ble_peripheral.dart';
-import 'package:ble_peripheral/src/ble_peripheral_interface.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 const String myServiceUuid = "12345678-1234-5678-1234-56789abcdef0";
-const String myCharacteristicUuid = "12345678-1234-5678-1234-56789abcdef1";
+const String myCharacteristicUuid = "12345678-1234-5678-1234-56789abcdefF";
 
 // Add a global callback for when a raw string is received via GATT Write
 Function(String rawMessage, String senderDeviceId)? onPeripheralMessageReceived;
@@ -13,10 +12,7 @@ Function(String rawMessage, String senderDeviceId)? onPeripheralMessageReceived;
 Future<void> requestBlePermissions() async {
   await [
     Permission.bluetooth,
-    Permission.bluetoothScan,
     Permission.bluetoothAdvertise,
-    Permission.bluetoothConnect,
-    Permission.location,
   ].request();
 }
 
@@ -40,7 +36,6 @@ Future<void> setupBlePeripheral() async {
       (String deviceId, String characteristicId, int offset, Uint8List? value) {
         if (characteristicId.toLowerCase() == myCharacteristicUuid.toLowerCase() && value != null) {
           try {
-            // Data decodes here, passing the '||' delimited format back to mesh
             String receivedMessage = utf8.decode(value);
             print("Received Message from $deviceId: $receivedMessage");
             onPeripheralMessageReceived?.call(receivedMessage, deviceId);
@@ -62,6 +57,10 @@ Future<void> setupBlePeripheral() async {
 
 Future<void> _startAdvertisingSequence() async {
   try {
+    try {
+      await BlePeripheral.stopAdvertising();
+    } catch (_) {}
+    
     await BlePeripheral.clearServices();
     await BlePeripheral.addService(
       BleService(

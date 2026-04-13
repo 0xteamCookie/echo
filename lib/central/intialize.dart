@@ -1,22 +1,29 @@
+import 'dart:io';
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:io';
+import '../mesh/ble-collisions.dart';
 
-// ─── UUIDs 
+// ─── UUIDs
 final Guid targetServiceUuid = Guid("12345678-1234-5678-1234-56789abcdef0");
-final Guid targetCharacteristicUuid = Guid(
-  "12345678-1234-5678-1234-56789abcdef1",
-);
+final Guid targetCharacteristicUuid = Guid("12345678-1234-5678-1234-56789abcdefF");
+final String _targetServiceUuidLower = targetServiceUuid.toString().toLowerCase();
+final String _targetCharUuidLower = targetCharacteristicUuid.toString().toLowerCase();
 
 // ─── Callbacks & State 
-Function(String message)? onMessageReceived;
-Function(List<Map<String, dynamic>> devices)? onDeviceListUpdated;
-
 final Map<String, Map<String, dynamic>> _seenDevices = {};
+
 StreamSubscription? _scanSubscription;
 bool _isScanning = false;
+bool _scanLoopScheduled = false;
+bool _adapterListenerAttached = false;
+Timer? _scanResultThrottleTimer;
+bool _scanResultDirty = false;
+
+final StreamController<List<Map<String, dynamic>>> _deviceStreamController = StreamController.broadcast();
+Stream<List<Map<String, dynamic>>> get scanResultsStream => _deviceStreamController.stream;
+    
+Function(List<Map<String, dynamic>> devices)? onDeviceListUpdated;
 
 // ─── Permissions 
 Future<void> requestClientPermissions() async {
@@ -27,7 +34,7 @@ Future<void> requestClientPermissions() async {
   ].request();
 }
 
-// ─── Scanner (Just builds a list of nearby Mailboxes) 
+// ─── Scanner
 Future<void> startAutoScanner() async {
   try {
     await requestClientPermissions();
@@ -40,13 +47,16 @@ Future<void> startAutoScanner() async {
       }
     }
 
-    FlutterBluePlus.adapterState.listen((state) {
-      if (state == BluetoothAdapterState.on) {
-        _startScan();
-      } else {
-        stopScanning();
-      }
-    });
+    if (!_adapterListenerAttached) {
+      _adapterListenerAttached = true;
+      FlutterBluePlus.adapterState.listen((state) {
+        if (state == BluetoothAdapterState.on) {
+          _startScan();
+        } else {
+          stopScanning();
+        }
+      });
+    }
   } catch (e) {
     print("❌ startAutoScanner error: $e");
   }
@@ -75,7 +85,13 @@ Future<void> _startScan() async {
 
   FlutterBluePlus.isScanning.where((s) => s == false).first.then((_) {
     _isScanning = false;
-    Future.delayed(const Duration(seconds: 2), _startScan);
+    if (!_scanLoopScheduled) {
+      _scanLoopScheduled = true;
+      Future.delayed(const Duration(seconds: 2), () {
+        _scanLoopScheduled = false;
+        _startScan();
+      });
+    }
   });
 }
 
@@ -91,9 +107,7 @@ void _onScanResult(List<ScanResult> results) {
     // Only add devices that are advertising our Mesh Service UUID
     final advertisedUuids = r.advertisementData.serviceUuids;
     final hasTargetService = advertisedUuids.any(
-      (u) =>
-          u.toString().toLowerCase() ==
-          targetServiceUuid.toString().toLowerCase(),
+      (u) => u.toString().toLowerCase() == _targetServiceUuidLower,
     );
 
     if (hasTargetService) {
@@ -104,45 +118,50 @@ void _onScanResult(List<ScanResult> results) {
         'serviceUuids': advertisedUuids.map((u) => u.toString()).toList(),
         'connected': false,
       };
-      onDeviceListUpdated?.call(_seenDevices.values.toList());
     }
   }
+
+  _scanResultDirty = true;
+  _scanResultThrottleTimer ??= Timer(const Duration(milliseconds: 500), _flushScanResults);
 }
 
-//  Mailman: Connect, Write, Disconnect 
+void _flushScanResults() {
+  _scanResultThrottleTimer = null;
+  if (!_scanResultDirty) return;
+  _scanResultDirty = false;
+  final devicesList = _seenDevices.values.toList();
+  onDeviceListUpdated?.call(devicesList);
+  _deviceStreamController.add(devicesList);
+}
 
-/// This function is called when you want to send a message.
-/// It connects to a target device, drops the payload in the writeable characteristic, and disconnects.
-Future<void> dispatchPayloadToDevice(
+// Get list of devices within range
+List<Map<String, dynamic>> getCurrentScanResults() {
+  return _seenDevices.values.toList();
+}
+
+Future<bool> dispatchPayloadToDevice(
   String deviceId,
   List<int> payloadBytes,
 ) async {
   BluetoothDevice device = BluetoothDevice.fromId(deviceId);
 
   try {
-    print("🚀 Delivering mail to $deviceId...");
+    print("🚀 Sending to $deviceId...");
 
-    // 1. Connect temporarily
-    await device.connect(autoConnect: false, license: License.free);
-
-    // Force Android to fetch the latest characteristic properties (Clear Cache)
-    if (Platform.isAndroid) {
-      try {
-        await device.clearGattCache();
-      } catch (_) {}
-    }
-
-    // Give Android BLE stack a moment to stabilize the connection
-    await Future.delayed(const Duration(milliseconds: 500));
+    // 1. Connect temporarily with a short timeout
+    await device.connect(
+      autoConnect: false,
+      license: License.free, 
+      timeout: const Duration(seconds: 4),
+    );
 
     // 2. Discover target service/characteristic
     List<BluetoothService> services = await device.discoverServices();
+
     for (var service in services) {
-      if (service.uuid.toString().toLowerCase() ==
-          targetServiceUuid.toString().toLowerCase()) {
+      if (service.uuid.toString().toLowerCase() == _targetServiceUuidLower) {
         for (var char in service.characteristics) {
-          if (char.uuid.toString().toLowerCase() ==
-              targetCharacteristicUuid.toString().toLowerCase()) {
+          if (char.uuid.toString().toLowerCase() == _targetCharUuidLower) {
             
             // 3. Dynamically check what the cached property allows
             bool canWriteNoResponse = char.properties.writeWithoutResponse;
@@ -150,40 +169,40 @@ Future<void> dispatchPayloadToDevice(
 
             if (canWriteNoResponse || canWrite) {
               await char.write(payloadBytes, withoutResponse: canWriteNoResponse);
-              print("✅ Mail delivered successfully to $deviceId!");
+              print("✅ Sent successfully to $deviceId!");
             } else {
-              print("❌ Cached characteristic has NO write properties! Toggle Bluetooth on BOTH phones.");
+              print("❌ NO write permission on $deviceId");
             }
 
-            // Give the radio time to actually transmit the packet before severing the connection
-            await Future.delayed(const Duration(milliseconds: 500));
+            // Delay to let the radio buffer flush down to the hardware
+            await Future.delayed(const Duration(milliseconds: 50));
 
-            // 4. Disconnect to free up the radio
+            // 4. Disconnect immediately to free up the radio
             await device.disconnect();
-            return;
+            return true;
           }
         }
       }
     }
 
-    print("❌ Mailbox characteristic not found on $deviceId");
+    print("❌ Characteristic not found on $deviceId");
     await device.disconnect();
+    return false;
   } catch (e) {
-    print("❌ Failed to deliver mail to $deviceId: $e");
+    print("❌ Failed to send to $deviceId: $e");
+    BleCollisionManager.recordFailure(deviceId);
     try {
       await device.disconnect();
     } catch (_) {}
+    return false;
   }
 }
-/// Helper function to blast a message to ALL discovered mesh nodes
-Future<void> blastToEntireMesh(List<int> payloadBytes) async {
-  // Pause scanning while transmitting so radio isn't overwhelmed
-  await stopScanning();
 
+/// Blast a message to ALL discovered mesh nodes
+Future<void> blastToEntireMesh(List<int> payloadBytes) async {
+  await stopScanning();
   for (String deviceId in _seenDevices.keys) {
     await dispatchPayloadToDevice(deviceId, payloadBytes);
   }
-
-  // Resume scanning
   await _startScan();
 }
