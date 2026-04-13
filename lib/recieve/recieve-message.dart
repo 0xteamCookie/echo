@@ -35,15 +35,17 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(String rawMessage, String sen
         // 3. Save the received packet into SQLite only if new
         await insertMessage(packetMap);
         packetMap['isNew'] = true;
+        print("🎉 [decodeAndSaveMessage] Vetted and Saved NEW Incoming Message: ${parts[0]}");
       } else {
         packetMap['isNew'] = false;
+        print("🧱 [decodeAndSaveMessage] Deduplicating Message: ${parts[1]} (Already exists in DB. Ghosting.)");
       }
       
       // 4. Return the map so the UI can process it
       return packetMap;
     }
     
-    print("Received unformatted generic message: $rawMessage");
+    print("❓ [decodeAndSaveMessage] Received unformatted generic message: $rawMessage");
     return null;
     
   } catch (e) {

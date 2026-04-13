@@ -29,6 +29,8 @@ Future<void> _relayTick() async {
 
     final nearbyDevices = getCurrentScanResults();
     if (nearbyDevices.isEmpty) return;
+    
+    print("⏱️ [RelayLoop] Tick Executing! Non-Expired Msgs: ${messages.length} // Nearby Active Nodes: ${nearbyDevices.length}");
 
     final myDeviceId = await DeviceIdManager.getDeviceId();
 

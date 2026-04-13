@@ -7,6 +7,7 @@ import '../mesh/ble-collisions.dart';
 
 Future<void> sendNewMessage(String textMessage) async {
   try {
+    print("📨 [sendNewMessage] Generating new message: $textMessage");
     // 1. Get variables
     final packetMap = await generatePacketVariables(textMessage);
 
@@ -38,24 +39,39 @@ Future<void> relayMessage( String messageId, String message, String deviceId, St
     String compactPayload = "$messageId||$message||$deviceId||$senderName||$expiresAt||$location";
 
     List<int> bytes = utf8.encode(compactPayload);
-    print("Byte size of relayed packet: ${bytes.length} bytes");
+    print("📡 [relayMessage] Evaluating messageId: $messageId for relay.");
+    print("📦 [relayMessage] Encoded Packet byte size: ${bytes.length} bytes.");
 
     final devices = getCurrentScanResults();
-    if (devices.isEmpty) return;
+    if (devices.isEmpty) {
+      print("⚠️ [relayMessage] No devices currently in range to relay to.");
+      return;
+    }
 
     final devicesThatNeedMessage = <String>[];
     for (var device in devices) {
       final String targetDeviceId = device['id'];
       
-      if (BleCollisionManager.shouldSkip(targetDeviceId)) continue;
+      if (BleCollisionManager.shouldSkip(targetDeviceId)) {
+        print("🛑 [relayMessage] Skipping MAC: $targetDeviceId (In Collision Timeout)");
+        continue;
+      }
 
       final alreadySent = await _hasAcknowledged(messageId, targetDeviceId);
       if (!alreadySent) {
         devicesThatNeedMessage.add(targetDeviceId);
+        print("🟢 [relayMessage] Queuing MAC: $targetDeviceId (Needs this message)");
+      } else {
+        print("⏭️ [relayMessage] Skipping MAC: $targetDeviceId (Already Acknowledged)");
       }
     }
 
-    if (devicesThatNeedMessage.isEmpty) return;
+    if (devicesThatNeedMessage.isEmpty) {
+      print("💤 [relayMessage] All nearby active devices already have this message. Sleeping.");
+      return;
+    }
+
+    print("🚀 [relayMessage] Emitting payload to ${devicesThatNeedMessage.length} queued device(s)!");
 
     await stopScanning(); 
 
