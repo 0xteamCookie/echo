@@ -13,9 +13,11 @@ class DeviceIdManager {
     String? deviceId = prefs.getString(_deviceIdKey);
     
     if (deviceId == null) {
-      // Generate a v4 UUID
+      // Generate a v4 (random) UUID
       const Uuid uuid = Uuid();
       deviceId = uuid.v4();
+      
+      // Save it to local storage
       await prefs.setString(_deviceIdKey, deviceId);
     }
     

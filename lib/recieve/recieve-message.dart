@@ -1,43 +1,24 @@
 import '../database/db_hook.dart';
 
-Future<void> handleIncomingMessage(
-  String msg,
-  String senderHardwareMac, {
-  required void Function(Map<String, dynamic>) onNewMessage,
-  required void Function(Map<String, dynamic>) onNewHeartbeat,
-}) async {
-  final decoded = await decodeAndSaveMessage(msg, senderHardwareMac);
-
-  if (decoded == null) return;
-
-  if (decoded['messageId'] != null) {
-    await insertMessageDevice(
-      messageId: decoded['messageId'],
-      deviceId: senderHardwareMac,
-    );
-  }
-
-  if (decoded['isNew'] == false) return;
-
-  final isHeartbeat =
-      (decoded['message'].toString().contains('Heartbeat')) ||
-      msg.toString().contains('Heartbeat');
-
-  final payload = decoded;
-  payload['relayerMac'] = senderHardwareMac; 
-
-  if (isHeartbeat) {
-    onNewHeartbeat(payload);
-  } else {
-    onNewMessage(payload);
-  }
-}
-
-/// Decodes, saves it to SQLite, returns mapped data
+/// Decodes the compact string, saves it to SQLite, and returns the mapped data.
 Future<Map<String, dynamic>?> decodeAndSaveMessage(String rawMessage, String senderDeviceId) async {
   try {
+
+    if (rawMessage.startsWith('ACK||')) {
+      final parts = rawMessage.split('||');
+      if (parts.length >= 3) {
+        String ackMessageId = parts[1];
+        String relayerId = parts[2];
+        
+        await insertMessageDevice(messageId: ackMessageId, deviceId: relayerId);
+        print("✅ Acknowledgment saved for Msg: $ackMessageId from $relayerId");
+      }
+      return null;
+    }
+    // 1. Split the incoming payload by our delimiter
     final parts = rawMessage.split('||');
     
+    // 2. Ensure it matches our expected 5-part format
     if (parts.length == 6) {
       final Map<String, dynamic> packetMap = {
         'messageId': parts[0],
@@ -48,15 +29,17 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(String rawMessage, String sen
         'location': parts[5],
       };
       
-      final exists = await messageExists(parts[0]);
+      final exists = await messageExists(parts[1]);
       
       if (!exists) {
+        // 3. Save the received packet into SQLite only if new
         await insertMessage(packetMap);
         packetMap['isNew'] = true;
       } else {
         packetMap['isNew'] = false;
       }
       
+      // 4. Return the map so the UI can process it
       return packetMap;
     }
     

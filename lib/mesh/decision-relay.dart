@@ -2,6 +2,7 @@ import 'dart:async';
 import '../database/db_hook.dart';
 import '../send/send-message.dart';
 import '../central/intialize.dart';
+import '../packet/get-deviceID.dart';
 
 const Duration relayInterval = Duration(seconds: 15);
 
@@ -29,6 +30,8 @@ Future<void> _relayTick() async {
     final nearbyDevices = getCurrentScanResults();
     if (nearbyDevices.isEmpty) return;
 
+    final myDeviceId = await DeviceIdManager.getDeviceId();
+
     for (final msg in messages) {
       final messageId = msg['messageId'] as String;
       final message = msg['message'] as String;
@@ -36,6 +39,8 @@ Future<void> _relayTick() async {
       final senderName = msg['senderName'] as String;
       final expiresAt = msg['expiresAt'] as String;
       final location = msg['location'] as String;
+
+      // Relay with original sender's deviceId to preserve message provenance
       await relayMessage(messageId, message, deviceId, senderName, expiresAt, location);
     }
   } catch (e) {
