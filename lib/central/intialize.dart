@@ -4,13 +4,11 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../mesh/ble-collisions.dart';
 
-// ─── UUIDs
 final Guid targetServiceUuid = Guid("12345678-1234-5678-1234-56789abcdef0");
 final Guid targetCharacteristicUuid = Guid("12345678-1234-5678-1234-56789abcdefF");
 final String _targetServiceUuidLower = targetServiceUuid.toString().toLowerCase();
 final String _targetCharUuidLower = targetCharacteristicUuid.toString().toLowerCase();
 
-// ─── Callbacks & State 
 final Map<String, Map<String, dynamic>> _seenDevices = {};
 
 StreamSubscription? _scanSubscription;
@@ -20,12 +18,8 @@ bool _adapterListenerAttached = false;
 Timer? _scanResultThrottleTimer;
 bool _scanResultDirty = false;
 
-final StreamController<List<Map<String, dynamic>>> _deviceStreamController = StreamController.broadcast();
-Stream<List<Map<String, dynamic>>> get scanResultsStream => _deviceStreamController.stream;
-    
 Function(List<Map<String, dynamic>> devices)? onDeviceListUpdated;
 
-// ─── Permissions 
 Future<void> requestClientPermissions() async {
   await [
     Permission.bluetoothScan,
@@ -34,7 +28,6 @@ Future<void> requestClientPermissions() async {
   ].request();
 }
 
-// ─── Scanner
 Future<void> startAutoScanner() async {
   try {
     await requestClientPermissions();
@@ -131,7 +124,6 @@ void _flushScanResults() {
   _scanResultDirty = false;
   final devicesList = _seenDevices.values.toList();
   onDeviceListUpdated?.call(devicesList);
-  _deviceStreamController.add(devicesList);
 }
 
 // Get list of devices within range
@@ -148,14 +140,12 @@ Future<bool> dispatchPayloadToDevice(
   try {
     print("🚀 Sending to $deviceId...");
 
-    // 1. Connect temporarily with a short timeout
     await device.connect(
       autoConnect: false,
-      license: License.free, 
       timeout: const Duration(seconds: 4),
+      license: License.free
     );
 
-    // 2. Discover target service/characteristic
     List<BluetoothService> services = await device.discoverServices();
 
     for (var service in services) {
@@ -163,7 +153,6 @@ Future<bool> dispatchPayloadToDevice(
         for (var char in service.characteristics) {
           if (char.uuid.toString().toLowerCase() == _targetCharUuidLower) {
             
-            // 3. Dynamically check what the cached property allows
             bool canWriteNoResponse = char.properties.writeWithoutResponse;
             bool canWrite = char.properties.write;
 
@@ -174,10 +163,8 @@ Future<bool> dispatchPayloadToDevice(
               print("❌ NO write permission on $deviceId");
             }
 
-            // Delay to let the radio buffer flush down to the hardware
             await Future.delayed(const Duration(milliseconds: 50));
 
-            // 4. Disconnect immediately to free up the radio
             await device.disconnect();
             return true;
           }
@@ -198,11 +185,3 @@ Future<bool> dispatchPayloadToDevice(
   }
 }
 
-/// Blast a message to ALL discovered mesh nodes
-Future<void> blastToEntireMesh(List<int> payloadBytes) async {
-  await stopScanning();
-  for (String deviceId in _seenDevices.keys) {
-    await dispatchPayloadToDevice(deviceId, payloadBytes);
-  }
-  await _startScan();
-}

@@ -5,11 +5,9 @@ import 'database/db_hook.dart';
 import 'peripheral/initialize.dart';
 import 'central/intialize.dart';
 import 'recieve/recieve-message.dart';
-import 'packet/get-deviceID.dart'; 
 import 'layout/main_layout.dart';
 import 'mesh/decision-relay.dart';
 
-// ─── Global State ───────────────────────────────────────────────────────────
 class AppState {
   static final AppState _instance = AppState._internal();
   factory AppState() => _instance;
@@ -46,40 +44,21 @@ void _initializeApp() async {
   };
 
   onPeripheralMessageReceived = (msg, senderHardwareMac) async {
-    final decoded = await decodeAndSaveMessage(msg, senderHardwareMac);
-
-    if (decoded == null) return;
-
-    if (decoded['messageId'] != null) {
-      // Remember we got this from senderHardwareMac so we don't bounce it back to them
-      await insertMessageDevice(
-        messageId: decoded['messageId'],
-        deviceId: senderHardwareMac,
-      );
-    }
-
-    // Only propagate completely new messages to the UI list
-    if (decoded['isNew'] == false) return;
-
-    final isHeartbeat =
-        (decoded['message'].toString().contains('Heartbeat')) ||
-        msg.toString().contains('Heartbeat');
-
-    final payload = decoded;
-    payload['relayerMac'] = senderHardwareMac; // Add relayer MAC for UI display
-
-    if (isHeartbeat) {
-      final list = List<Map<String, dynamic>>.from(AppState().heartbeats.value);
-      list.insert(0, payload);
-      if (list.length > 50) list.removeLast();
-      AppState().heartbeats.value = list;
-    } else {
-      final list = List<Map<String, dynamic>>.from(
-        AppState().chatMessages.value,
-      );
-      list.insert(0, payload);
-      AppState().chatMessages.value = list;
-    }
+    await handleIncomingMessage(
+      msg,
+      senderHardwareMac,
+      onNewMessage: (payload) {
+        final list = List<Map<String, dynamic>>.from(AppState().chatMessages.value);
+        list.insert(0, payload);
+        AppState().chatMessages.value = list;
+      },
+      onNewHeartbeat: (payload) {
+        final list = List<Map<String, dynamic>>.from(AppState().heartbeats.value);
+        list.insert(0, payload);
+        if (list.length > 50) list.removeLast();
+        AppState().heartbeats.value = list;
+      },
+    );
   };
 
   final savedMessages = await getMessages();

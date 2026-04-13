@@ -22,7 +22,6 @@ Future<void> setupBlePeripheral() async {
     await BlePeripheral.initialize();
     print("BLE INITIALIZED - OPEN GATT");
     
-    // Listen to OS Bluetooth State changes
     BlePeripheral.setBleStateChangeCallback((bool isOn) async {
       print("Bluetooth State Changed: ${isOn ? "ON" : "OFF"}");
       if (isOn) {
@@ -42,7 +41,7 @@ Future<void> setupBlePeripheral() async {
           } catch (e) {
             print("Failed to decode written data: $e");
           }
-          return null; // Acknowledge standard write with no error code
+          return null; 
         }
         return null;
       },

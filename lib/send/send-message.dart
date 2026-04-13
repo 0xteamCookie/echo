@@ -7,13 +7,10 @@ import '../mesh/ble-collisions.dart';
 
 Future<void> sendNewMessage(String textMessage) async {
   try {
-    // 1. Get variables
     final packetMap = await generatePacketVariables(textMessage);
-
-    // 2. Save directly to SQLite
     await insertMessage(packetMap);
 
-    // 3. Format Message: messageId||message||deviceId||senderName||expiresAt||location
+    // messageId||message||deviceId||senderName||expiresAt||location
     String compactPayload = "${packetMap['messageId']}||${packetMap['message']}||${packetMap['deviceId']}||${packetMap['senderName']}||${packetMap['expiresAt']}||${packetMap['location']}";
 
     List<int> bytes = utf8.encode(compactPayload);
@@ -34,7 +31,7 @@ Future<void> sendNewMessage(String textMessage) async {
 Future<void> relayMessage( String messageId, String message, String deviceId, String senderName, String expiresAt, String location
 ) async {
   try {
-    // 1. Format Message: messageId||message||deviceId||senderName||expiresAt||location
+    // messageId||message||deviceId||senderName||expiresAt||location
     String compactPayload = "$messageId||$message||$deviceId||$senderName||$expiresAt||$location";
 
     List<int> bytes = utf8.encode(compactPayload);
