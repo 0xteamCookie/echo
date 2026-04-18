@@ -5,6 +5,7 @@ import '../screens/chat_screen.dart';
 import '../screens/sos_screen.dart';
 import '../screens/devices_screen.dart';
 import '../screens/ack_db_screen.dart';
+import '../screens/map_screen.dart';
 import '../database/db_hook.dart';
 import '../main.dart';
 
@@ -25,12 +26,30 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     SosScreen(),
     HomeScreen(),
     ChatScreen(),
+    MapScreen(),
   ];
 
   static const _navItems = [
-    _NavItem(icon: Icons.favorite_rounded,       label: 'SOS',  activeColor: Color(0xFFD96B45)),
-    _NavItem(icon: Icons.home_rounded,           label: 'Home', activeColor: Color(0xFF6BBFA0)),
-    _NavItem(icon: Icons.chat_bubble_rounded,    label: 'Chat', activeColor: Color(0xFFE8A87C)),
+    _NavItem(
+      icon: Icons.favorite_rounded,
+      label: 'SOS',
+      activeColor: Color(0xFFD96B45),
+    ),
+    _NavItem(
+      icon: Icons.home_rounded,
+      label: 'Home',
+      activeColor: Color(0xFF6BBFA0),
+    ),
+    _NavItem(
+      icon: Icons.chat_bubble_rounded,
+      label: 'Chat',
+      activeColor: Color(0xFFE8A87C),
+    ),
+    _NavItem(
+      icon: Icons.map_rounded,
+      label: 'Map',
+      activeColor: Color.fromARGB(255, 0, 87, 55),
+    ),
   ];
 
   @override
@@ -42,7 +61,7 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     )..forward();
 
     _navIconControllers = List.generate(
-      3,
+      4,
       (_) => AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 200),
@@ -91,9 +110,7 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
           child: _screens[_currentIndex],
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        child: _buildNav(),
-      ),
+      bottomNavigationBar: SafeArea(child: _buildNav()),
     );
   }
 
@@ -109,7 +126,11 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
               color: BeaconColors.primary,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.cell_tower_rounded, color: Colors.white, size: 16),
+            child: const Icon(
+              Icons.cell_tower_rounded,
+              color: Colors.white,
+              size: 16,
+            ),
           ),
           const SizedBox(width: 10),
           const Text('Beacon'),
@@ -120,10 +141,8 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
         _AppBarIconButton(
           icon: Icons.list_alt_rounded,
           tooltip: 'Message Log',
-          onPressed: () => Navigator.push(
-            context,
-            _warmRoute(const AckDbScreen()),
-          ),
+          onPressed: () =>
+              Navigator.push(context, _warmRoute(const AckDbScreen())),
         ),
         _AppBarIconButton(
           icon: Icons.delete_sweep_rounded,
@@ -140,10 +159,8 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
           },
         ),
         GestureDetector(
-          onDoubleTap: () => Navigator.push(
-            context,
-            _warmRoute(const DevicesScreen()),
-          ),
+          onDoubleTap: () =>
+              Navigator.push(context, _warmRoute(const DevicesScreen())),
           child: Padding(
             padding: const EdgeInsets.only(right: 12.0),
             child: Tooltip(
@@ -155,7 +172,11 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
                   color: BeaconColors.cardBorder,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.sensors_rounded, color: BeaconColors.textMid, size: 18),
+                child: const Icon(
+                  Icons.sensors_rounded,
+                  color: BeaconColors.textMid,
+                  size: 18,
+                ),
               ),
             ),
           ),
@@ -210,10 +231,16 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
         return FadeTransition(
           opacity: animation,
           child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.06),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+            position:
+                Tween<Offset>(
+                  begin: const Offset(0, 0.06),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
+                ),
             child: child,
           ),
         );
@@ -221,13 +248,15 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     );
   }
 }
-
-// ─── Reusable nav button ─────────────────────────────────────────────────────
 class _NavItem {
   final IconData icon;
   final String label;
   final Color activeColor;
-  const _NavItem({required this.icon, required this.label, required this.activeColor});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.activeColor,
+  });
 }
 
 class _NavButton extends StatelessWidget {
@@ -258,15 +287,24 @@ class _NavButton extends StatelessWidget {
               AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeOutCubic,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: isSelected ? item.activeColor.withOpacity(0.12) : Colors.transparent,
+                  color: isSelected
+                      ? item.activeColor.withOpacity(0.12)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Icon(
                   item.icon,
                   size: 22,
-                  color: Color.lerp(BeaconColors.textLight, item.activeColor, t),
+                  color: Color.lerp(
+                    BeaconColors.textLight,
+                    item.activeColor,
+                    t,
+                  ),
                 ),
               ),
               const SizedBox(height: 2),
@@ -288,7 +326,6 @@ class _NavButton extends StatelessWidget {
   }
 }
 
-// ─── App bar icon button ──────────────────────────────────────────────────────
 class _AppBarIconButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
