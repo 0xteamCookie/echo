@@ -9,12 +9,18 @@ import 'packet/get-deviceID.dart';
 import 'layout/main_layout.dart';
 import 'mesh/relay_loop.dart';
 
+enum UserRole {
+  user,
+  rescuer,
+}
+
 // ─── Global State ───────────────────────────────────────────────────────────
 class AppState {
   static final AppState _instance = AppState._internal();
   factory AppState() => _instance;
   AppState._internal();
 
+  final ValueNotifier<UserRole> role = ValueNotifier(UserRole.user);
   final ValueNotifier<List<Map<String, dynamic>>> devices = ValueNotifier([]);
   final ValueNotifier<List<Map<String, dynamic>>> chatMessages = ValueNotifier([]);
   final ValueNotifier<List<Map<String, dynamic>>> heartbeats = ValueNotifier([]);
