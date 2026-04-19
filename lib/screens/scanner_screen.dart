@@ -1,0 +1,73 @@
+import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import '../auth/auth_service.dart';
+import '../main.dart'; // for BeaconColors
+
+class ScannerScreen extends StatefulWidget {
+  const ScannerScreen({super.key});
+
+  @override
+  State<ScannerScreen> createState() => _ScannerScreenState();
+}
+
+class _ScannerScreenState extends State<ScannerScreen> {
+  final MobileScannerController controller = MobileScannerController(
+    formats: const [BarcodeFormat.qrCode],
+  );
+
+  bool isScanning = true;
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+   void _onDetect(BarcodeCapture capture) async {
+    final List<Barcode> barcodes = capture.barcodes;
+    
+    for (final barcode in barcodes) {
+      final token = barcode.rawValue;
+      if (token != null) {
+        print('Raw Scanned Data: $token'); // Terminal output for debugging
+        
+        // Pause scanning while validating
+        controller.stop();
+        setState(() => isScanning = false);
+
+        bool isValid = await AuthService.verifyAndSaveToken(token);
+        
+        if (isValid) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Login Successful! ✅')),
+          );
+          // Navigate to next screen, e.g.:
+          // Navigator.of(context).pushReplacement(...);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Invalid or Expired QR Code ❌')),
+          );
+          // Allow them to scan again
+          controller.start();
+          setState(() => isScanning = true);
+        }
+        break; // Process only the first valid QR code found in frame
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Scan Login Token'),
+        backgroundColor: BeaconColors.background,
+        elevation: 0,
+      ),
+      body: MobileScanner(
+        controller: controller,
+        onDetect: _onDetect,
+      ),
+    );
+  }
+}
