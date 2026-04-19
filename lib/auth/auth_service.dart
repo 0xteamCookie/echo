@@ -1,5 +1,6 @@
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../main.dart';
 
 class AuthService {
   static const storage = FlutterSecureStorage();
@@ -43,6 +44,12 @@ YOUR_ES256_PUBLIC_KEY_HERE
       }
       if (payload['role'] != null) {
         await storage.write(key: "role", value: payload['role'].toString());
+        
+        if (payload['role'].toString().toLowerCase() == 'rescuer') {
+          AppState().role.value = UserRole.rescuer;
+        } else {
+          AppState().role.value = UserRole.user;
+        }
       }
       print("💾 Session saved");
     }
@@ -51,6 +58,15 @@ YOUR_ES256_PUBLIC_KEY_HERE
   /// Checks if a valid session exists on app start
   static Future<bool> isLoggedIn() async {
     final id = await storage.read(key: "user_id");
+    
+    // Also restore the role state if session exists
+    if (id != null) {
+      final role = await storage.read(key: "role");
+      if (role?.toLowerCase() == 'rescuer') {
+        AppState().role.value = UserRole.rescuer;
+      }
+    }
+    
     return id != null;
   }
 

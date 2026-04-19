@@ -7,6 +7,8 @@ import '../screens/devices_screen.dart';
 import '../screens/ack_db_screen.dart';
 import '../screens/map_screen.dart';
 import '../screens/scanner_screen.dart';
+import '../screens/heatmap_screen.dart';
+import '../screens/report_screen.dart';
 import '../database/db_hook.dart';
 import '../main.dart';
 
@@ -21,37 +23,79 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
   int _currentIndex = 1;
 
   late final AnimationController _slideController;
-  late final List<AnimationController> _navIconControllers;
+  late List<AnimationController> _navIconControllers;
 
-  final List<Widget> _screens = const [
-    SosScreen(),
-    HomeScreen(),
-    ChatScreen(),
-    MapScreen(),
-  ];
+  List<Widget> get _screens {
+    final role = AppState().role.value;
 
-  static const _navItems = [
-    _NavItem(
-      icon: Icons.favorite_rounded,
-      label: 'SOS',
-      activeColor: Color(0xFFD96B45),
-    ),
-    _NavItem(
-      icon: Icons.home_rounded,
-      label: 'Home',
-      activeColor: Color(0xFF6BBFA0),
-    ),
-    _NavItem(
-      icon: Icons.chat_bubble_rounded,
-      label: 'Chat',
-      activeColor: Color(0xFFE8A87C),
-    ),
-    _NavItem(
-      icon: Icons.map_rounded,
-      label: 'Map',
-      activeColor: Color.fromARGB(255, 0, 87, 55),
-    ),
-  ];
+    if (role == UserRole.rescuer) {
+      return const [
+        HeatmapScreen(),
+        HomeScreen(),
+        ChatScreen(),
+        ReportScreen(),
+      ];
+    } else {
+      return const [
+        SosScreen(),
+        HomeScreen(),
+        ChatScreen(),
+        MapScreen(),
+      ];
+    }
+  }
+
+  List<_NavItem> get _navItems {
+    final role = AppState().role.value;
+
+    if (role == UserRole.rescuer) {
+      return const [
+        _NavItem(
+          icon: Icons.whatshot_rounded,
+          label: 'Heatmap',
+          activeColor: Colors.red,
+        ),
+        _NavItem(
+          icon: Icons.home_rounded,
+          label: 'Home',
+          activeColor: Color(0xFF6BBFA0),
+        ),
+        _NavItem(
+          icon: Icons.chat_bubble_rounded,
+          label: 'Chat',
+          activeColor: Color(0xFFE8A87C),
+        ),
+        _NavItem(
+          icon: Icons.assignment_turned_in_rounded,
+          label: 'Report',
+          activeColor: Colors.blue,
+        ),
+      ];
+    } else {
+      return const [
+        _NavItem(
+          icon: Icons.favorite_rounded,
+          label: 'SOS',
+          activeColor: Color(0xFFD96B45),
+        ),
+        _NavItem(
+          icon: Icons.home_rounded,
+          label: 'Home',
+          activeColor: Color(0xFF6BBFA0),
+        ),
+        _NavItem(
+          icon: Icons.chat_bubble_rounded,
+          label: 'Chat',
+          activeColor: Color(0xFFE8A87C),
+        ),
+        _NavItem(
+          icon: Icons.map_rounded,
+          label: 'Map',
+          activeColor: Color.fromARGB(255, 0, 87, 55),
+        ),
+      ];
+    }
+  }
 
   @override
   void initState() {
@@ -61,8 +105,28 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 350),
     )..forward();
 
+    _initControllers();
+    
+    // Listen to role changes to re-init controllers
+    AppState().role.addListener(_onRoleChanged);
+  }
+
+  void _onRoleChanged() {
+    // Keep current index but ensure it's within bounds
+    if (_currentIndex >= _navItems.length) {
+      _currentIndex = 0;
+    }
+    // Re-init controllers
+    for (final c in _navIconControllers) {
+      c.dispose();
+    }
+    _initControllers();
+    setState(() {});
+  }
+
+  void _initControllers() {
     _navIconControllers = List.generate(
-      4,
+      _navItems.length,
       (_) => AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 200),
@@ -74,6 +138,7 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    AppState().role.removeListener(_onRoleChanged);
     _slideController.dispose();
     for (final c in _navIconControllers) c.dispose();
     super.dispose();
@@ -90,28 +155,33 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _buildAppBar(),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        transitionBuilder: (child, animation) => FadeTransition(
-          opacity: animation,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.04),
-              end: Offset.zero,
-            ).animate(animation),
-            child: child,
+    return ValueListenableBuilder<UserRole>(
+      valueListenable: AppState().role,
+      builder: (context, role, _) {
+        return Scaffold(
+          appBar: _buildAppBar(),
+          body: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.04),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            ),
+            child: KeyedSubtree(
+              key: ValueKey(_currentIndex),
+              child: _screens[_currentIndex],
+            ),
           ),
-        ),
-        child: KeyedSubtree(
-          key: ValueKey(_currentIndex),
-          child: _screens[_currentIndex],
-        ),
-      ),
-      bottomNavigationBar: SafeArea(child: _buildNav()),
+          bottomNavigationBar: SafeArea(child: _buildNav()),
+        );
+      },
     );
   }
 
@@ -142,8 +212,23 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
         _AppBarIconButton(
           icon: Icons.qr_code_scanner_rounded,
           tooltip: 'Scan QR Code',
-          onPressed: () =>
-              Navigator.push(context, _warmRoute(const ScannerScreen())),
+          // onPressed: () =>
+          //     Navigator.push(context, _warmRoute(const ScannerScreen())),
+          onPressed: () {
+            final currentRole = AppState().role.value;
+            AppState().role.value = currentRole == UserRole.rescuer 
+                ? UserRole.user 
+                : UserRole.rescuer;
+            
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Switched to: ${AppState().role.value.name}'),
+                  duration: const Duration(milliseconds: 500),
+                ),
+              );
+            }
+          }
         ),
         _AppBarIconButton(
           icon: Icons.list_alt_rounded,
