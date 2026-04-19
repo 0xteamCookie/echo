@@ -5,10 +5,15 @@ import '../main.dart';
 class AuthService {
   static const storage = FlutterSecureStorage();
 
-  // Replace this with your actual ES256 Public Key
   static const String publicKeyPem = '''
 -----BEGIN PUBLIC KEY-----
-YOUR_ES256_PUBLIC_KEY_HERE
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAncV95GpNZ549VoX/J4TL
+mdyOaZVGeS8RZA5G4ANBnL394M6Vow0+Z8yBwTEcfTuZDqBmDHVxQ/Lj8SqM7iKe
+lHiXLBrWQp4/2sUNYP4z9qpMiuQImjU1F0xdMb7/UVnxhlrYw0GuYgt2j8qplnKO
+TTKsMDS6DVGfSY6DRR3UZ4CnkCQQ/IieOsRFF94bfplviB8WOrIpcC+6Gh4lnCdP
+aShPCIM4+UY5kHcjVrAp2C2p3samiHBOppYb0CAfE1ZG5AJluoKjoBfqVwvDYocF
+Kba/x7f/qXLePcGA54NvTDIopv+LdUgFUAbmPWFRHwpntHsUlJJk3rJiKVPB1Ifb
+9QIDAQAB
 -----END PUBLIC KEY-----
 ''';
 
@@ -18,7 +23,7 @@ YOUR_ES256_PUBLIC_KEY_HERE
       // Use ECPublicKey for ES256
       final jwt = JWT.verify(
         token,
-        ECPublicKey(publicKeyPem),
+        RSAPublicKey(publicKeyPem),
       );
 
       print("✅ VALID USER");
@@ -36,12 +41,12 @@ YOUR_ES256_PUBLIC_KEY_HERE
   }
 
   /// Saves the parsed payload to secure storage
-  static Future<void> _saveSession(dynamic payload) async {
+   static Future<void> _saveSession(dynamic payload) async {
     if (payload is Map) {
-      // Convert values to string for storage
-      if (payload['id'] != null) {
-        await storage.write(key: "user_id", value: payload['id'].toString());
+      if (payload['sub'] != null) {
+        await storage.write(key: "user_id", value: payload['sub'].toString());
       }
+      
       if (payload['role'] != null) {
         await storage.write(key: "role", value: payload['role'].toString());
         
@@ -51,7 +56,15 @@ YOUR_ES256_PUBLIC_KEY_HERE
           AppState().role.value = UserRole.user;
         }
       }
-      print("💾 Session saved");
+
+      if (payload['name'] != null) {
+        await storage.write(key: "name", value: payload['name'].toString());
+      }
+      if (payload['org'] != null) {
+        await storage.write(key: "org", value: payload['org'].toString());
+      }
+      
+      print("💾 Session saved with user ID: ${payload['sub']}");
     }
   }
 

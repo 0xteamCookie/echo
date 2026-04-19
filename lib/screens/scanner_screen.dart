@@ -29,20 +29,24 @@ class _ScannerScreenState extends State<ScannerScreen> {
     for (final barcode in barcodes) {
       final token = barcode.rawValue;
       if (token != null) {
-        print('Raw Scanned Data: $token'); // Terminal output for debugging
+        print('Raw Scanned Data: $token'); 
         
-        // Pause scanning while validating
         controller.stop();
         setState(() => isScanning = false);
 
         bool isValid = await AuthService.verifyAndSaveToken(token);
         
         if (isValid) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Login Successful! ✅')),
-          );
-          // Navigate to next screen, e.g.:
-          // Navigator.of(context).pushReplacement(...);
+          // Change the dashboard to rescuer
+          AppState().role.value = UserRole.rescuer;
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Login Successful! ✅ Switched to Rescuer Dashboard')),
+            );
+            // Go back to the main dashboard
+            Navigator.of(context).pop();
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Invalid or Expired QR Code ❌')),

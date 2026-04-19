@@ -10,6 +10,7 @@ import '../screens/scanner_screen.dart';
 import '../screens/heatmap_screen.dart';
 import '../screens/report_screen.dart';
 import '../database/db_hook.dart';
+import '../auth/auth_service.dart';
 import '../main.dart';
 
 class MainLayout extends StatefulWidget {
@@ -159,7 +160,7 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
       valueListenable: AppState().role,
       builder: (context, role, _) {
         return Scaffold(
-          appBar: _buildAppBar(),
+          appBar: _buildAppBar(role),
           body: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             switchInCurve: Curves.easeOutCubic,
@@ -185,7 +186,38 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  Future<void> _showLogoutConfirmation(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to end your rescuer session?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await AuthService.logout();
+      AppState().role.value = UserRole.user;
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Logged out successfully')),
+        );
+      }
+    }
+  }
+
+  PreferredSizeWidget _buildAppBar(UserRole role) {
     return AppBar(
       title: Row(
         mainAxisSize: MainAxisSize.min,
@@ -209,27 +241,19 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
       ),
       centerTitle: true,
       actions: [
-        _AppBarIconButton(
-          icon: Icons.qr_code_scanner_rounded,
-          tooltip: 'Scan QR Code',
-          // onPressed: () =>
-          //     Navigator.push(context, _warmRoute(const ScannerScreen())),
-          onPressed: () {
-            final currentRole = AppState().role.value;
-            AppState().role.value = currentRole == UserRole.rescuer 
-                ? UserRole.user 
-                : UserRole.rescuer;
-            
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Switched to: ${AppState().role.value.name}'),
-                  duration: const Duration(milliseconds: 500),
-                ),
-              );
-            }
-          }
-        ),
+        if (role == UserRole.rescuer)
+          _AppBarIconButton(
+            icon: Icons.logout_rounded,
+            tooltip: 'Logout',
+            onPressed: () => _showLogoutConfirmation(context),
+          )
+        else
+          _AppBarIconButton(
+            icon: Icons.qr_code_scanner_rounded,
+            tooltip: 'Scan QR Code',
+            onPressed: () =>
+                Navigator.push(context, _warmRoute(const ScannerScreen())),
+          ),
         _AppBarIconButton(
           icon: Icons.list_alt_rounded,
           tooltip: 'Message Log',
