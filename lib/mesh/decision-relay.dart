@@ -1,8 +1,8 @@
 import 'dart:async';
 import '../database/db_hook.dart';
-import '../send/send-message.dart';
 import '../central/intialize.dart';
-import '../packet/get-deviceID.dart';
+import '../mesh/ble-collisions.dart';
+import '../mesh/relay-tick.dart';
 
 const Duration relayInterval = Duration(seconds: 15);
 
@@ -32,8 +32,6 @@ Future<void> _relayTick() async {
     
     print("⏱️ [RelayLoop] Tick Executing! Non-Expired Msgs: ${messages.length} // Nearby Active Nodes: ${nearbyDevices.length}");
 
-    final myDeviceId = await DeviceIdManager.getDeviceId();
-
     for (final msg in messages) {
       final messageId = msg['messageId'] as String;
       final message = msg['message'] as String;
@@ -42,12 +40,33 @@ Future<void> _relayTick() async {
       final expiresAt = msg['expiresAt'] as String;
       final location = msg['location'] as String;
 
-      // Relay with original sender's deviceId to preserve message provenance
-      await relayMessage(messageId, message, deviceId, senderName, expiresAt, location);
+      final devicesThatNeedMessage = await evaluateRelayDecision(
+        messageId: messageId,
+        nearbyDevices: nearbyDevices,
+        shouldSkipDevice: BleCollisionManager.shouldSkip,
+        hasAcknowledged: _hasAcknowledged,
+      );
+
+      if (devicesThatNeedMessage.isNotEmpty) {
+        await relayMessage(
+          messageId,
+          message,
+          deviceId,
+          senderName,
+          expiresAt,
+          location,
+          devicesThatNeedMessage,
+        );
+      }
     }
   } catch (e) {
     print("Relay tick error: $e");
   } finally {
     _relayRunning = false;
   }
+}
+
+Future<bool> _hasAcknowledged(String messageId, String deviceId) async {
+  final devices = await getDevicesForMessage(messageId);
+  return devices.any((d) => d['deviceId'] == deviceId);
 }

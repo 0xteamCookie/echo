@@ -29,7 +29,7 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(String rawMessage, String sen
         'location': parts[5],
       };
       
-      final exists = await messageExists(parts[1]);
+      final exists = await messageExists(parts[0]);
       
       if (!exists) {
         // 3. Save the received packet into SQLite only if new

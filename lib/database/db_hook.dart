@@ -24,7 +24,7 @@ Future<void> insertMessageDevice({
       'messageId': messageId,
       'deviceId': deviceId,
     },
-    conflictAlgorithm: ConflictAlgorithm.ignore, // prevents duplicates
+    conflictAlgorithm: ConflictAlgorithm.ignore,
   );
 }
 
