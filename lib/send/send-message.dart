@@ -1,10 +1,10 @@
 import '../database/db_hook.dart';
 import '../packet/generate-packet.dart';
 
-Future<void> sendNewMessage(String textMessage) async {
+Future<void> sendNewMessage(String textMessage, {bool isSos = false}) async {
   try {
     print("📨 [sendNewMessage] Generating new message: $textMessage");
-    final packetMap = await generatePacketVariables(textMessage);
+    final packetMap = await generatePacketVariables(textMessage, isSos:isSos);
 
     await insertMessage(packetMap);
 

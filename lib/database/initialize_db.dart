@@ -28,7 +28,8 @@ class DatabaseHelper {
       deviceId TEXT,
       senderName TEXT,
       expiresAt TEXT,
-      location TEXT
+      location TEXT,
+      isSos INTEGER DEFAULT 0
     );
   ''');
 
