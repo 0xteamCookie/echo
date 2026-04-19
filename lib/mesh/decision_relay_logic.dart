@@ -41,11 +41,12 @@ Future<void> relayMessage(
   String senderName,
   String expiresAt,
   String location,
+  int isSos,
   List<String> targetDeviceIds,
 ) async {
   try {
     // messageId||message||deviceId||senderName||expiresAt||location
-    String compactPayload = "$messageId||$message||$deviceId||$senderName||$expiresAt||$location";
+    String compactPayload = "$messageId||$message||$deviceId||$senderName||$expiresAt||$location||$isSos";
 
     List<int> bytes = utf8.encode(compactPayload);
     print("📡 [relayMessage] Transmitting messageId: $messageId for relay.");

@@ -3,8 +3,7 @@ Future<Map<String, dynamic>?> decodeMessage(String rawMessage) async {
     // Split the incoming payload by our delimiter
     final parts = rawMessage.split('||');
     
-    // Ensure it matches our expected 5-part format
-    if (parts.length == 6) {
+    if (parts.length == 7) {
       final packetMap = {
         'messageId': parts[0],
         'message': parts[1],
@@ -12,9 +11,9 @@ Future<Map<String, dynamic>?> decodeMessage(String rawMessage) async {
         'senderName': parts[3],
         'expiresAt': parts[4],
         'location': parts[5],
+        'isSos': int.tryParse(parts[6]) ?? 0,
       };
       
-      // Return the map so the UI can display it
       return packetMap;
     }
     

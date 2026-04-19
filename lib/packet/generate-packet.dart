@@ -5,7 +5,7 @@ import 'get-userName.dart';
 
 const Duration messageLifespan = Duration(days: 1);
 
-Future<Map<String, dynamic>> generatePacketVariables(String message) async {
+Future<Map<String, dynamic>> generatePacketVariables(String message, {bool isSos = false}) async {
   String deviceId = await DeviceIdManager.getDeviceId();
   String location = await getCurrentLocationString();
   String messageId = generateMessageId();
@@ -22,5 +22,6 @@ Future<Map<String, dynamic>> generatePacketVariables(String message) async {
     'senderName': senderName,
     'expiresAt': expiresAt,
     'location': location,
+    'isSos': isSos ? 1 : 0,
   };
 }

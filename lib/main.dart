@@ -7,7 +7,7 @@ import 'central/intialize.dart';
 import 'recieve/recieve-message.dart';
 import 'packet/get-deviceID.dart';
 import 'layout/main_layout.dart';
-import 'mesh/decision-relay.dart';
+import 'mesh/relay_loop.dart';
 
 // ─── Global State ───────────────────────────────────────────────────────────
 class AppState {
@@ -94,6 +94,10 @@ void _initializeApp() async {
 
   final savedMessages = await getMessages();
   AppState().chatMessages.value = savedMessages.reversed.toList();
+  final chatHistory = savedMessages.where((m) => m['isSos'] != 1).toList();
+  final sosHistory = savedMessages.where((m) => m['isSos'] == 1).toList();
+  AppState().chatMessages.value = chatHistory.reversed.toList();
+  AppState().heartbeats.value = sosHistory.reversed.toList();
 
   await setupBlePeripheral();
   startAutoScanner();
