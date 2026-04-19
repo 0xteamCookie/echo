@@ -6,6 +6,7 @@ import '../screens/sos_screen.dart';
 import '../screens/devices_screen.dart';
 import '../screens/ack_db_screen.dart';
 import '../screens/map_screen.dart';
+import '../screens/scanner_screen.dart';
 import '../database/db_hook.dart';
 import '../main.dart';
 
@@ -138,6 +139,12 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
       ),
       centerTitle: true,
       actions: [
+        _AppBarIconButton(
+          icon: Icons.qr_code_scanner_rounded,
+          tooltip: 'Scan QR Code',
+          onPressed: () =>
+              Navigator.push(context, _warmRoute(const ScannerScreen())),
+        ),
         _AppBarIconButton(
           icon: Icons.list_alt_rounded,
           tooltip: 'Message Log',
