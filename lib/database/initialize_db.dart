@@ -29,7 +29,9 @@ class DatabaseHelper {
       senderName TEXT,
       expiresAt TEXT,
       location TEXT,
-      isSos INTEGER DEFAULT 0
+      isSos INTEGER DEFAULT 0,
+      isSynced INTEGER DEFAULT 0,
+      lastSyncedAt TEXT
     );
   ''');
 

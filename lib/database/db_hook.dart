@@ -75,3 +75,30 @@ Future<List<Map<String, dynamic>>> getNonExpiredMessages() async {
 Future<void> nukeDatabase() async {
   await DatabaseHelper.instance.deleteDb();
 }
+
+Future<List<Map<String, dynamic>>> getUnsyncedMessages() async {
+  final db = await DatabaseHelper.instance.database;
+  final batchSize = 10;
+
+  return await db.query(
+    'messages',
+    where: 'isSynced = ?',
+    whereArgs: [0],
+    limit: batchSize,
+    orderBy: 'isSos DESC, time ASC',
+  );
+}
+
+Future<void> markAsSynced(String id) async {
+  final db = await DatabaseHelper.instance.database;
+
+  await db.update(
+    'messages',
+    {
+      'isSynced': 1,
+      'lastSyncedAt': DateTime.now().toIso8601String(),
+    },
+    where: 'messageId = ?',
+    whereArgs: [id],
+  );
+}
