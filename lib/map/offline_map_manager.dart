@@ -47,6 +47,59 @@ class OfflineMapManager {
     }
   }
 
+  static Future<void> downloadLargeAreaLowRes(
+    double centerLat,
+    double centerLon,
+  ) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final basePath = '${dir.path}/offline_tiles';
+
+    const urlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+    // ~7km radius is about 0.063 degrees offset
+    double offset = 0.063;
+    double minLat = centerLat - offset;
+    double maxLat = centerLat + offset;
+    double minLon = centerLon - offset;
+    double maxLon = centerLon + offset;
+
+    // Zoom 10 to 13 for low resolution
+    for (int z = 10; z <= 13; z++) {
+      int minX = _lon2tilex(minLon, z);
+      int maxX = _lon2tilex(maxLon, z);
+      int minY = _lat2tiley(maxLat, z);
+      int maxY = _lat2tiley(minLat, z);
+
+      for (int x = minX; x <= maxX; x++) {
+        for (int y = minY; y <= maxY; y++) {
+          final file = File('$basePath/$z/$x/$y.png');
+          if (!await file.exists()) {
+            await file.create(recursive: true);
+            final url = urlTemplate
+                .replaceAll('{z}', z.toString())
+                .replaceAll('{x}', x.toString())
+                .replaceAll('{y}', y.toString());
+            try {
+              final response = await http.get(Uri.parse(url));
+              await file.writeAsBytes(response.bodyBytes);
+            } catch (e) {
+              print("Failed to download tile: $z/$x/$y");
+            }
+          }
+        }
+      }
+    }
+  }
+
+  static Future<void> clearOfflineMapCache() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final basePath = '${dir.path}/offline_tiles';
+    final directory = Directory(basePath);
+    if (await directory.exists()) {
+      await directory.delete(recursive: true);
+    }
+  }
+
   static int _lon2tilex(double lon, int z) =>
       ((lon + 180.0) / 360.0 * pow(2.0, z)).floor();
 

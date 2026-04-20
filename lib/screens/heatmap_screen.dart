@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import '../map/geo_circle.dart';
 import '../map/offline_map_manager.dart';
+import '../packet/get-location.dart';
 import '../main.dart';
 import '../models/rescuer_session.dart';
 
@@ -44,15 +45,70 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
     }
   }
 
-  Future<void> _downloadMap() async {
+  Future<void> _downloadLargeArea() async {
     setState(() => _isDownloading = true);
-    await OfflineMapManager.downloadMapArea(_center.latitude, _center.longitude);
-    setState(() => _isDownloading = false);
+    try {
+      String locStr = await getCurrentLocationString();
+      if (locStr.contains(',')) {
+        final parts = locStr.split(',');
+        double lat = double.parse(parts[0].trim());
+        double lng = double.parse(parts[1].trim());
+        await OfflineMapManager.downloadLargeAreaLowRes(lat, lng);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('7km low-res map downloaded around you!')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to get current location.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isDownloading = false);
+      }
+    }
+  }
 
+  Future<void> _clearCache() async {
+    await OfflineMapManager.clearOfflineMapCache();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Zone map downloaded for offline use!')),
+        const SnackBar(content: Text('Offline map cache deleted!')),
       );
+    }
+  }
+
+  Future<void> _centerOnUser() async {
+    try {
+      String locStr = await getCurrentLocationString();
+      if (locStr.contains(',')) {
+        final parts = locStr.split(',');
+        double lat = double.parse(parts[0].trim());
+        double lng = double.parse(parts[1].trim());
+        _mapController.move(LatLng(lat, lng), 15.0);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to get current location.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
@@ -79,9 +135,14 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
         title: const Text('Zone Map'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.my_location),
+            icon: const Icon(Icons.filter_center_focus),
             tooltip: 'Centre on zone',
             onPressed: () => _mapController.move(_center, 15.0),
+          ),
+          IconButton(
+            icon: const Icon(Icons.my_location),
+            tooltip: 'Centre on me',
+            onPressed: _centerOnUser,
           ),
           IconButton(
             icon: _isDownloading
@@ -91,8 +152,13 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.download),
-            tooltip: 'Download zone tiles',
-            onPressed: _isDownloading ? null : _downloadMap,
+            tooltip: 'Download 7km area (low res)',
+            onPressed: _isDownloading ? null : _downloadLargeArea,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Delete map cache',
+            onPressed: _isDownloading ? null : _clearCache,
           ),
         ],
       ),

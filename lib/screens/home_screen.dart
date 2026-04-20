@@ -12,14 +12,12 @@ class HomeScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
-        // ── Role Assignment Card (rescuer only) ─────────────────────────
         if (session != null) ...[
           const SizedBox(height: 4),
           _RoleAssignmentCard(session: session),
           const SizedBox(height: 20),
         ],
 
-        // ── Header & Status ────────────────────────────────────────────────
         const SizedBox(height: 4),
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -43,7 +41,6 @@ class HomeScreen extends StatelessWidget {
         _StatusCard(),
         const SizedBox(height: 32),
 
-        // ── Announcements Header ───────────────────────────────────────────
         const Text(
           'Announcements',
           style: TextStyle(
@@ -55,7 +52,6 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        // ── Simple Announcement List ───────────────────────────────────────
         _SimpleAnnouncement(
           text: 'Move to top of buildings. Flooding reported in lower sections.',
           time: '2 min ago',
@@ -86,7 +82,6 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// ─── Simple Announcement Item ───────────────────────────────────────────────
 class _SimpleAnnouncement extends StatelessWidget {
   final String text;
   final String time;
@@ -145,7 +140,6 @@ class _SimpleAnnouncement extends StatelessWidget {
   }
 }
 
-// ─── Offline badge ────────────────────────────────────────────────────────────
 class _OfflineBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -183,7 +177,6 @@ class _OfflineBadge extends StatelessWidget {
   }
 }
 
-// ─── Animated status card ──────────────────────────────────────────────────────
 class _StatusCard extends StatefulWidget {
   @override
   State<_StatusCard> createState() => _StatusCardState();
@@ -232,7 +225,6 @@ class _StatusCardState extends State<_StatusCard> with SingleTickerProviderState
           ),
           child: Row(
             children: [
-              // Animated pulse
               SizedBox(
                 width: 56,
                 height: 56,
@@ -342,7 +334,6 @@ class _StatusCardState extends State<_StatusCard> with SingleTickerProviderState
   }
 }
 
-// ─── Role Assignment Card ───────────────────────────────────────────────────
 class _RoleAssignmentCard extends StatelessWidget {
   final RescuerSession session;
   const _RoleAssignmentCard({required this.session});
@@ -457,4 +448,4 @@ class _RoleAssignmentCard extends StatelessWidget {
       ),
     );
   }
-}
+}
