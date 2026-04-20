@@ -18,7 +18,7 @@ class _MapScreenState extends State<MapScreen> {
   List<Marker> _markers = [];
   String _tilePath = '';
   bool _isDownloading = false;
-  bool _isLoadingLocation = true; // <-- Added to prevent early rendering
+  bool _isLoadingLocation = true; 
   LatLng _center = const LatLng(0, 0);
   final MapController _mapController = MapController(); 
 
@@ -54,7 +54,6 @@ class _MapScreenState extends State<MapScreen> {
     final messages = await getMessages();
     List<Marker> newMarkers = [];
 
-    // Add a marker for your own location
     newMarkers.add(
       Marker(
         point: _center,
@@ -80,7 +79,6 @@ class _MapScreenState extends State<MapScreen> {
             ),
           );
         } catch (e) {
-          // ignore parsing errors
         }
       }
     }
@@ -94,7 +92,6 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _downloadMap() async {
     setState(() => _isDownloading = true);
-    // Uses the precise _center coordinates loaded during init
     await OfflineMapManager.downloadMapArea(_center.latitude, _center.longitude);
     setState(() => _isDownloading = false);
     
@@ -129,7 +126,6 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ],
       ),
-      // Wait for GPS before building the FlutterMap
       body: _isLoadingLocation 
         ? const Center(child: Column(
             mainAxisSize: MainAxisSize.min,

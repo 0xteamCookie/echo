@@ -1,6 +1,7 @@
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../main.dart';
+import '../models/rescuer_session.dart';
 
 class AuthService {
   static const storage = FlutterSecureStorage();
@@ -40,52 +41,57 @@ Kba/x7f/qXLePcGA54NvTDIopv+LdUgFUAbmPWFRHwpntHsUlJJk3rJiKVPB1Ifb
     }
   }
 
-  /// Saves the parsed payload to secure storage
-   static Future<void> _saveSession(dynamic payload) async {
+  /// Saves the parsed payload to secure storage and populates AppState.
+  static Future<void> _saveSession(dynamic payload) async {
     if (payload is Map) {
+      // Store user_id
       if (payload['sub'] != null) {
         await storage.write(key: "user_id", value: payload['sub'].toString());
       }
-      
-      if (payload['role'] != null) {
-        await storage.write(key: "role", value: payload['role'].toString());
-        
-        if (payload['role'].toString().toLowerCase() == 'rescuer') {
-          AppState().role.value = UserRole.rescuer;
-        } else {
-          AppState().role.value = UserRole.user;
-        }
+
+      // Build the full rescuer session from the JWT payload
+      final session = RescuerSession.fromJwtPayload(
+        Map<dynamic, dynamic>.from(payload),
+      );
+
+      // Persist every field to secure storage
+      final storageMap = session.toStorageMap();
+      for (final entry in storageMap.entries) {
+        await storage.write(key: entry.key, value: entry.value);
       }
 
-      if (payload['name'] != null) {
-        await storage.write(key: "name", value: payload['name'].toString());
-      }
-      if (payload['org'] != null) {
-        await storage.write(key: "org", value: payload['org'].toString());
-      }
-      
-      print("💾 Session saved with user ID: ${payload['sub']}");
+      // Populate global state
+      AppState().rescuerSession.value = session;
+
+      // Any non-"user" role is treated as a rescuer for the nav layout
+      AppState().role.value = UserRole.rescuer;
+
+      print("💾 Session saved: $session");
     }
   }
 
-  /// Checks if a valid session exists on app start
+  /// Checks if a valid session exists on app start and restores it.
   static Future<bool> isLoggedIn() async {
     final id = await storage.read(key: "user_id");
-    
-    // Also restore the role state if session exists
+
     if (id != null) {
-      final role = await storage.read(key: "role");
-      if (role?.toLowerCase() == 'rescuer') {
-        AppState().role.value = UserRole.rescuer;
-      }
+      // Restore the full session from individual secure-storage keys
+      final allValues = await storage.readAll();
+      final session = RescuerSession.fromStorageMap(
+        Map<String, String>.from(allValues),
+      );
+
+      AppState().rescuerSession.value = session;
+      AppState().role.value = UserRole.rescuer;
     }
-    
+
     return id != null;
   }
 
-  /// Logs out the user by clearing storage
+  /// Logs out the user by clearing storage and session state.
   static Future<void> logout() async {
     await storage.deleteAll();
+    AppState().rescuerSession.value = null;
     print("🗑️ Session cleared");
   }
 }

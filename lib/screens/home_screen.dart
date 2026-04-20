@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../models/rescuer_session.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final session = AppState().rescuerSession.value;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
+        // ── Role Assignment Card (rescuer only) ─────────────────────────
+        if (session != null) ...[
+          const SizedBox(height: 4),
+          _RoleAssignmentCard(session: session),
+          const SizedBox(height: 20),
+        ],
+
         // ── Header & Status ────────────────────────────────────────────────
         const SizedBox(height: 4),
         Row(
@@ -331,3 +341,120 @@ class _StatusCardState extends State<_StatusCard> with SingleTickerProviderState
     );
   }
 }
+
+// ─── Role Assignment Card ───────────────────────────────────────────────────
+class _RoleAssignmentCard extends StatelessWidget {
+  final RescuerSession session;
+  const _RoleAssignmentCard({required this.session});
+
+  Color get _roleColor {
+    switch (session.role.toLowerCase()) {
+      case 'medic':
+        return const Color(0xFFE74C3C);
+      case 'search':
+        return const Color(0xFF3498DB);
+      case 'logistics':
+        return const Color(0xFFF39C12);
+      case 'comms':
+        return const Color(0xFF9B59B6);
+      default:
+        return BeaconColors.secondary;
+    }
+  }
+
+  IconData get _roleIcon {
+    switch (session.role.toLowerCase()) {
+      case 'medic':
+        return Icons.medical_services_rounded;
+      case 'search':
+        return Icons.search_rounded;
+      case 'logistics':
+        return Icons.inventory_2_rounded;
+      case 'comms':
+        return Icons.cell_tower_rounded;
+      default:
+        return Icons.shield_rounded;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_roleColor, _roleColor.withOpacity(0.75)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: _roleColor.withOpacity(0.30),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Role icon
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.20),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(_roleIcon, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 14),
+          // Name & details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  session.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${session.radiusM.toInt()}m zone assigned',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.75),
+                    fontSize: 12,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Role badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.22),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              session.role.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                fontFamily: 'Inter',
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

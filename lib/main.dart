@@ -8,6 +8,8 @@ import 'recieve/recieve-message.dart';
 import 'packet/get-deviceID.dart';
 import 'layout/main_layout.dart';
 import 'mesh/relay_loop.dart';
+import 'models/rescuer_session.dart';
+import 'auth/auth_service.dart';
 
 enum UserRole {
   user,
@@ -21,6 +23,7 @@ class AppState {
   AppState._internal();
 
   final ValueNotifier<UserRole> role = ValueNotifier(UserRole.user);
+  final ValueNotifier<RescuerSession?> rescuerSession = ValueNotifier(null);
   final ValueNotifier<List<Map<String, dynamic>>> devices = ValueNotifier([]);
   final ValueNotifier<List<Map<String, dynamic>>> chatMessages = ValueNotifier([]);
   final ValueNotifier<List<Map<String, dynamic>>> heartbeats = ValueNotifier([]);
@@ -61,6 +64,9 @@ void main() async {
 }
 
 void _initializeApp() async {
+  // Restore any saved rescuer session from secure storage
+  await AuthService.isLoggedIn();
+
   onDeviceListUpdated = (devs) {
     AppState().devices.value = devs;
   };
