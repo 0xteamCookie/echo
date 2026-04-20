@@ -10,6 +10,8 @@ import 'layout/main_layout.dart';
 import 'mesh/relay_loop.dart';
 import 'models/rescuer_session.dart';
 import 'auth/auth_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'online/sync.dart'; 
 
 enum UserRole {
   user,
@@ -67,6 +69,9 @@ void _initializeApp() async {
   // Restore any saved rescuer session from secure storage
   await AuthService.isLoggedIn();
 
+  // Sync messages to internet
+  syncMessages();
+
   onDeviceListUpdated = (devs) {
     AppState().devices.value = devs;
   };
@@ -110,6 +115,13 @@ void _initializeApp() async {
   final sosHistory = savedMessages.where((m) => m['isSos'] == 1).toList();
   AppState().chatMessages.value = chatHistory.reversed.toList();
   AppState().heartbeats.value = sosHistory.reversed.toList();
+
+  // Sync automatically when internet reconnects
+  Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) {
+    if (!result.contains(ConnectivityResult.none)) {
+       syncMessages();
+    }
+  });
 
   await setupBlePeripheral();
   startAutoScanner();
