@@ -4,7 +4,7 @@ import '../central/intialize.dart';
 import '../crypto/ed25519.dart';
 import '../database/db_hook.dart';
 import '../mesh/packet_codec.dart';
-import '../packet/generate-packet.dart';
+import '../packet/generate_packet.dart';
 
 Future<void> sendNewMessage(String textMessage, {bool isSos = false}) async {
   try {

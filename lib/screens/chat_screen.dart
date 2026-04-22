@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../main.dart';
-import '../send/send-message.dart';
-import '../packet/get-userName.dart';
+import '../send/send_message.dart';
+import '../packet/get_user_name.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});

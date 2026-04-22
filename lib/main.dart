@@ -6,14 +6,14 @@ import 'database/db_hook.dart';
 import 'peripheral/initialize.dart';
 import 'central/intialize.dart';
 import 'crypto/ed25519.dart' as ed25519;
-import 'recieve/recieve-message.dart';
+import 'receive/receive_message.dart';
 import 'layout/main_layout.dart';
 import 'mesh/relay_loop.dart';
 import 'models/rescuer_session.dart';
 import 'auth/auth_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'online/sync.dart';
-import 'send/send-heartbeat.dart';
+import 'send/send_heartbeat.dart';
 import 'services/activity_monitor.dart';
 import 'services/mesh_foreground_service.dart';
 
@@ -81,7 +81,7 @@ void _initializeApp() async {
   // P2-11: ensure the device's long-lived Ed25519 identity exists so every
   // outgoing packet can be signed. Failure here is non-fatal — sending just
   // falls back to unsigned v2 frames (covered by the getPublicKeyB64 → ''
-  // short-circuit in send-message.dart).
+  // short-circuit in send_message.dart).
   try {
     await ed25519.ensureKeypair();
   } catch (e) {

@@ -1,7 +1,7 @@
-import 'get-deviceID.dart';
-import 'get-location.dart';
-import 'get-messageid.dart';
-import 'get-userName.dart';
+import 'get_device_id.dart';
+import 'get_location.dart';
+import 'get_message_id.dart';
+import 'get_user_name.dart';
 
 const Duration messageLifespan = Duration(days: 1);
 

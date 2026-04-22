@@ -8,8 +8,8 @@ import '../central/intialize.dart';
 import '../database/db_hook.dart';
 import '../main.dart';
 import '../mesh/packet_codec.dart';
-import '../packet/get-deviceID.dart';
-import '../packet/get-location.dart';
+import '../packet/get_device_id.dart';
+import '../packet/get_location.dart';
 
 /// Rescuer triage feed (P1-5).
 ///

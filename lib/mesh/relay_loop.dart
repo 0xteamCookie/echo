@@ -1,7 +1,7 @@
 import 'dart:async';
 import '../database/db_hook.dart';
 import '../central/intialize.dart';
-import '../mesh/ble-collisions.dart';
+import '../mesh/ble_collisions.dart';
 import 'decision_relay_logic.dart';
 import 'packet_codec.dart';
 
@@ -30,6 +30,17 @@ Future<void> _relayTick() async {
 
     final nearbyDevices = getCurrentScanResults();
     if (nearbyDevices.isEmpty) return;
+
+    // P3-7: prioritize stronger signals so nearest peers receive first.
+    nearbyDevices.sort((a, b) {
+      final ra = (a['rssi'] is int)
+          ? a['rssi'] as int
+          : int.tryParse((a['rssi'] ?? '').toString()) ?? -999;
+      final rb = (b['rssi'] is int)
+          ? b['rssi'] as int
+          : int.tryParse((b['rssi'] ?? '').toString()) ?? -999;
+      return rb.compareTo(ra); // descending RSSI (stronger first)
+    });
 
     print("⏱️ [RelayLoop] Tick Executing! Non-Expired Msgs: ${messages.length} // Nearby Active Nodes: ${nearbyDevices.length}");
 

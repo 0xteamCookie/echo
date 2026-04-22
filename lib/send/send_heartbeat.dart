@@ -1,4 +1,4 @@
-import 'send-message.dart';
+import 'send_message.dart';
 
 /// Sends an SOS (emergency) message to the mesh network with department context
 /// 

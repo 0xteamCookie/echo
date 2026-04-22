@@ -7,7 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import '../database/db_hook.dart';
-import '../packet/get-location.dart';
+import '../packet/get_location.dart';
 import '../map/offline_map_manager.dart';
 
 /// Mesh map screen. Shows the user's location plus every message pin received
@@ -246,8 +246,8 @@ class _MapScreenState extends State<MapScreen> {
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           tileProvider: FileTileProvider(_tilePath),
-          errorImage: const NetworkImage(
-              'https://tile.openstreetmap.org/13/4093/2723.png'),
+          // P3-14: no `errorImage` — flutter_map falls back to an empty tile
+          // on failure instead of repeatedly fetching a hard-coded URL.
         ),
         MarkerLayer(markers: markers),
       ],

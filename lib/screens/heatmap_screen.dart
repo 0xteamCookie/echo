@@ -10,7 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import '../database/db_hook.dart';
 import '../map/geo_circle.dart';
 import '../map/offline_map_manager.dart';
-import '../packet/get-location.dart';
+import '../packet/get_location.dart';
 import '../main.dart';
 import '../models/rescuer_session.dart';
 
@@ -440,9 +440,8 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
               tileProvider: _tilePath.isNotEmpty
                   ? _OfflineFallbackTileProvider(_tilePath)
                   : NetworkTileProvider(),
-              errorImage: const NetworkImage(
-                'https://tile.openstreetmap.org/13/4093/2723.png',
-              ),
+              // P3-14: no `errorImage` — flutter_map falls back to an empty
+              // tile on failure instead of repeatedly GETing a hard-coded URL.
             ),
             PolygonLayer(
               polygons: [

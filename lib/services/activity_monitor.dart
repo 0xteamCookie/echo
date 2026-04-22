@@ -41,7 +41,7 @@ typedef FallWarningHandler = void Function({
 });
 
 /// Called when the countdown elapses without a cancel → fire the SOS. The
-/// implementation is wired to `sendSosHeartbeat` from `send-heartbeat.dart`
+/// implementation is wired to `sendSosHeartbeat` from `send_heartbeat.dart`
 /// in `main.dart`.
 typedef AutoSosTrigger = Future<void> Function(String message);
 

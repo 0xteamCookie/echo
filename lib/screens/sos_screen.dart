@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../main.dart';
-import '../send/send-heartbeat.dart';
+import '../send/send_heartbeat.dart';
 
 class SosScreen extends StatefulWidget {
   const SosScreen({super.key});

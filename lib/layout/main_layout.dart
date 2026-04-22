@@ -264,6 +264,27 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
           icon: Icons.delete_sweep_rounded,
           tooltip: 'Nuke DB',
           onPressed: () async {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Nuke local database?'),
+                content: const Text(
+                  'This deletes all local mesh data. Continue?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    child: const Text('Nuke'),
+                  ),
+                ],
+              ),
+            );
+            if (confirmed != true) return;
             await nukeDatabase();
             AppState().chatMessages.value = [];
             AppState().heartbeats.value = [];
