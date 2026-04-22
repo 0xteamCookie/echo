@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../database/db_hook.dart';
 
-/// Backend ingest base URL — override at build time via
-/// `flutter build apk --dart-define=BEACON_API_BASE_URL=https://beacon-api.example.com`.
+/// Backend ingest base URL — injected at build time via
+/// `--dart-define-from-file=dart-defines.json` (see .vscode/launch.json).
+/// The default points to the live backend so `flutter run` without flags
+/// also works during development.
 const String _apiBaseUrl = String.fromEnvironment(
   'BEACON_API_BASE_URL',
-  defaultValue: 'https://beacon-api.example.com',
+  defaultValue: 'https://echo-back.getmyroom.in',
 );
 
 /// Shared-secret token for the ingest endpoint. Replaced by Firebase App Check
