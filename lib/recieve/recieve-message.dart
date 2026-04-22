@@ -1,4 +1,6 @@
+import 'dart:convert';
 import '../database/db_hook.dart';
+import '../mesh/packet_codec.dart';
 
 /// Decodes the compact string, saves it to SQLite, and returns the mapped data.
 Future<Map<String, dynamic>?> decodeAndSaveMessage(
@@ -6,58 +8,60 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(
   String senderDeviceId,
 ) async {
   try {
+    // ACKs are control frames, not data packets.
     if (rawMessage.startsWith('ACK||')) {
       final parts = rawMessage.split('||');
       if (parts.length >= 3) {
-        String ackMessageId = parts[1];
-        String relayerId = parts[2];
-
+        final ackMessageId = parts[1];
+        final relayerId = parts[2];
         await insertMessageDevice(messageId: ackMessageId, deviceId: relayerId);
         print("✅ Acknowledgment saved for Msg: $ackMessageId from $relayerId");
       }
       return null;
     }
-    // 1. Split the incoming payload by our delimiter
-    final parts = rawMessage.split('||');
 
-    // 2. Ensure it matches our expected 5-part format
-    if (parts.length == 7) {
-      final Map<String, dynamic> packetMap = {
-        'messageId': parts[0],
-        'message': parts[1],
-        'deviceId': parts[2],
-        'senderName': parts[3],
-        'expiresAt': parts[4],
-        'location': parts[5],
-        'isSos': int.tryParse(parts[6]) ?? 0,
-      };
-
-      final exists = await messageExists(parts[0]);
-
-      if (!exists) {
-        // 3. Save the received packet into SQLite only if new
-        await insertMessage(packetMap);
-        packetMap['isNew'] = true;
-        print(
-          "🎉 [decodeAndSaveMessage] Vetted and Saved NEW Incoming Message: ${parts[0]}",
-        );
-      } else {
-        packetMap['isNew'] = false;
-        print(
-          "🧱 [decodeAndSaveMessage] Deduplicating Message: ${parts[1]} (Already exists in DB. Ghosting.)",
-        );
-      }
-
-      // 4. Return the map so the UI can process it
-      return packetMap;
+    final packetMap = decodePacket(rawMessage);
+    if (packetMap == null) {
+      print("❓ [decodeAndSaveMessage] Unparseable frame: $rawMessage");
+      return null;
     }
 
-    print(
-      "❓ [decodeAndSaveMessage] Received unformatted generic message: $rawMessage",
-    );
-    return null;
+    // P1-2: drop immediately if the TTL is already exhausted before we even
+    // persist the packet. Otherwise we'd keep relaying a dead message.
+    final hopCount = (packetMap['hopCount'] is int)
+        ? packetMap['hopCount'] as int
+        : int.tryParse((packetMap['hopCount'] ?? '0').toString()) ?? 0;
+    if (hopCount >= maxHops) {
+      print(
+        "⏹️ [decodeAndSaveMessage] Dropping ${packetMap['messageId']} — TTL exhausted.",
+      );
+      return null;
+    }
+
+    final messageId = (packetMap['messageId'] ?? '').toString();
+    final exists = await messageExists(messageId);
+
+    if (!exists) {
+      await insertMessage(packetMap);
+      packetMap['isNew'] = true;
+      print(
+        "🎉 [decodeAndSaveMessage] Vetted and Saved NEW Incoming Message: $messageId",
+      );
+    } else {
+      packetMap['isNew'] = false;
+      print(
+        "🧱 [decodeAndSaveMessage] Deduplicating Message: $messageId (Already exists in DB. Ghosting.)",
+      );
+    }
+
+    // Silence "unused parameter" lint — senderDeviceId is used by the caller to
+    // record which peer relayed this frame (insertMessageDevice), not here.
+    assert(utf8.encode(senderDeviceId).isNotEmpty || senderDeviceId.isEmpty);
+
+    return packetMap;
   } catch (e) {
     print("Error decoding message: $e");
     return null;
   }
 }
+

@@ -5,10 +5,29 @@ import 'initialize_db.dart';
 Future<void> insertMessage(Map<String, dynamic> data) async {
   final db = await DatabaseHelper.instance.database;
 
+  // Guarantee `time` is populated so `ORDER BY time ASC` in getUnsyncedMessages
+  // works for every row (including packets relayed from peers that omit it).
+  final row = Map<String, dynamic>.from(data);
+  if (row['time'] == null || (row['time'] is String && (row['time'] as String).isEmpty)) {
+    final expiresAt = row['expiresAt'];
+    String? derived;
+    if (expiresAt is String && expiresAt.isNotEmpty) {
+      try {
+        // Best-effort: packets carry only expiresAt, so derive t0 = expiresAt - 24h.
+        final expiry = DateTime.parse(expiresAt).toUtc();
+        derived = expiry.subtract(const Duration(days: 1)).toIso8601String();
+      } catch (_) {}
+    }
+    row['time'] = derived ?? DateTime.now().toUtc().toIso8601String();
+  }
+  if (row['hopCount'] == null) {
+    row['hopCount'] = 0;
+  }
+
   await db.insert(
     'messages',
-    data,
-    conflictAlgorithm: ConflictAlgorithm.replace, 
+    row,
+    conflictAlgorithm: ConflictAlgorithm.replace,
   );
 }
 

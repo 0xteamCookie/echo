@@ -5,12 +5,26 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Required when the mesh foreground service keeps scanning while the app is backgrounded. -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
     <!-- Removed 'neverForLocation' because mesh/beacon apps rely on physical proximity -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
 
-    
+    <!-- P0-3: foreground service so relay/advertise keep running on Android 10+ when the user leaves the app. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- Internet for sync.dart once connectivity returns. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
         android:label="beacon"
         android:name="${applicationName}"
@@ -42,6 +56,16 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- P0-3: foreground service hosting BLE scan/advertise + relay tick.
+             `flutter_foreground_task` registers the actual class at runtime; we only
+             need to declare the service with the correct foregroundServiceType so the
+             platform lets us keep scanning while the app is not in the foreground. -->
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="connectedDevice|location"
+            android:exported="false"
+            android:stopWithTask="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

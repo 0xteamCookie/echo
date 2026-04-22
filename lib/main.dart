@@ -5,13 +5,13 @@ import 'database/db_hook.dart';
 import 'peripheral/initialize.dart';
 import 'central/intialize.dart';
 import 'recieve/recieve-message.dart';
-import 'packet/get-deviceID.dart';
 import 'layout/main_layout.dart';
 import 'mesh/relay_loop.dart';
 import 'models/rescuer_session.dart';
 import 'auth/auth_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'online/sync.dart'; 
+import 'online/sync.dart';
+import 'services/mesh_foreground_service.dart';
 
 enum UserRole {
   user,
@@ -90,14 +90,14 @@ void _initializeApp() async {
 
     if (decoded['isNew'] == false) return;
 
-    final isHeartbeat =
-        (decoded['message'].toString().contains('Heartbeat')) ||
-        msg.toString().contains('Heartbeat');
+    // Route on the authoritative isSos flag from the decoded packet; never on
+    // substring matches against the (untrusted) human message body (P0-4).
+    final isSos = decoded['isSos'] == 1;
 
     final payload = decoded;
     payload['relayerMac'] = senderHardwareMac;
 
-    if (isHeartbeat) {
+    if (isSos) {
       final list = List<Map<String, dynamic>>.from(AppState().heartbeats.value);
       list.insert(0, payload);
       if (list.length > 50) list.removeLast();
@@ -110,7 +110,6 @@ void _initializeApp() async {
   };
 
   final savedMessages = await getMessages();
-  AppState().chatMessages.value = savedMessages.reversed.toList();
   final chatHistory = savedMessages.where((m) => m['isSos'] != 1).toList();
   final sosHistory = savedMessages.where((m) => m['isSos'] == 1).toList();
   AppState().chatMessages.value = chatHistory.reversed.toList();
@@ -126,6 +125,15 @@ void _initializeApp() async {
   await setupBlePeripheral();
   startAutoScanner();
   startRelayLoop();
+
+  // P0-3: keep the mesh alive when the user leaves the app.
+  // Best-effort: any failure here (e.g. iOS, or permission denied) is logged
+  // and swallowed so the foreground UI still works.
+  try {
+    await MeshForegroundService.initAndStart();
+  } catch (e) {
+    debugPrint('Foreground service start failed: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {

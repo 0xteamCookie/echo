@@ -17,31 +17,75 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
   }
 
   Future _createDB(Database db, int version) async {
-  await db.execute('''
-    CREATE TABLE messages (
-      messageId TEXT PRIMARY KEY,
-      message TEXT,
-      deviceId TEXT,
-      senderName TEXT,
-      expiresAt TEXT,
-      location TEXT,
-      isSos INTEGER DEFAULT 0,
-      isSynced INTEGER DEFAULT 0,
-      lastSyncedAt TEXT
-    );
-  ''');
+    await db.execute('''
+      CREATE TABLE messages (
+        messageId TEXT PRIMARY KEY,
+        message TEXT,
+        deviceId TEXT,
+        senderName TEXT,
+        expiresAt TEXT,
+        location TEXT,
+        time TEXT,
+        hopCount INTEGER DEFAULT 0,
+        isSos INTEGER DEFAULT 0,
+        isSynced INTEGER DEFAULT 0,
+        lastSyncedAt TEXT
+      );
+    ''');
 
-  await db.execute('''
-    CREATE TABLE message_devices (
-      messageId TEXT,
-      deviceId TEXT,
-      PRIMARY KEY (messageId, deviceId)
+    await db.execute('''
+      CREATE TABLE message_devices (
+        messageId TEXT,
+        deviceId TEXT,
+        PRIMARY KEY (messageId, deviceId)
+      );
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_messages_time ON messages(time);',
     );
-  ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_messages_isSynced ON messages(isSynced);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_messages_expiresAt ON messages(expiresAt);',
+    );
+  }
+
+  Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Add `time` and `hopCount` columns that P0-1 / P1-2 rely on.
+      try {
+        await db.execute('ALTER TABLE messages ADD COLUMN time TEXT;');
+      } catch (_) {}
+      try {
+        await db.execute(
+          'ALTER TABLE messages ADD COLUMN hopCount INTEGER DEFAULT 0;',
+        );
+      } catch (_) {}
+      // Backfill: derive time from expiresAt - 24h so existing rows are sortable.
+      await db.execute(
+        "UPDATE messages SET time = expiresAt WHERE time IS NULL OR time = '';",
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_messages_time ON messages(time);',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_messages_isSynced ON messages(isSynced);',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_messages_expiresAt ON messages(expiresAt);',
+      );
+    }
   }
 
   Future<void> deleteDb() async {

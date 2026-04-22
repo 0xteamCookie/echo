@@ -3,6 +3,7 @@ import '../database/db_hook.dart';
 import '../central/intialize.dart';
 import '../mesh/ble-collisions.dart';
 import 'decision_relay_logic.dart';
+import 'packet_codec.dart';
 
 const Duration relayInterval = Duration(seconds: 15);
 
@@ -29,17 +30,17 @@ Future<void> _relayTick() async {
 
     final nearbyDevices = getCurrentScanResults();
     if (nearbyDevices.isEmpty) return;
-    
+
     print("⏱️ [RelayLoop] Tick Executing! Non-Expired Msgs: ${messages.length} // Nearby Active Nodes: ${nearbyDevices.length}");
 
     for (final msg in messages) {
-      final messageId = msg['messageId'] as String;
-      final message = msg['message'] as String;
-      final deviceId = msg['deviceId'] as String;
-      final senderName = msg['senderName'] as String;
-      final expiresAt = msg['expiresAt'] as String;
-      final location = msg['location'] as String;
-      final isSos = msg['isSos'] as int? ?? 0;
+      final messageId = (msg['messageId'] ?? '').toString();
+      final hopCount = (msg['hopCount'] is int)
+          ? msg['hopCount'] as int
+          : int.tryParse((msg['hopCount'] ?? '0').toString()) ?? 0;
+
+      // P1-2: stop relaying once TTL is exhausted.
+      if (hopCount >= maxHops) continue;
 
       final devicesThatNeedMessage = await evaluateRelayDecision(
         messageId: messageId,
@@ -49,16 +50,7 @@ Future<void> _relayTick() async {
       );
 
       if (devicesThatNeedMessage.isNotEmpty) {
-        await relayMessage(
-          messageId,
-          message,
-          deviceId,
-          senderName,
-          expiresAt,
-          location,
-          isSos,
-          devicesThatNeedMessage,
-        );
+        await relayMessage(msg, devicesThatNeedMessage);
       }
     }
   } catch (e) {
@@ -72,3 +64,4 @@ Future<bool> _hasAcknowledged(String messageId, String deviceId) async {
   final devices = await getDevicesForMessage(messageId);
   return devices.any((d) => d['deviceId'] == deviceId);
 }
+

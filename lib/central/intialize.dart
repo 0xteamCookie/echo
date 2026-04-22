@@ -164,11 +164,10 @@ Future<bool> dispatchPayloadToDevice(
   try {
     print("🔌 [dispatchPayload] Dialing MAC: $deviceId...");
 
-    // Clear caches and bonds to prevent OS-level Pairing prompts on Android
+    // Clear GATT cache only. `removeBond` was removed because it destroys
+    // the user's pairings with unrelated Bluetooth devices (headphones,
+    // car) every time we relay, which is a data-loss-class bug.
     if (Platform.isAndroid) {
-      try {
-        await device.removeBond();
-      } catch (_) {}
       try {
         await device.clearGattCache();
       } catch (_) {}
