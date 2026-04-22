@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
+import '../database/db_hook.dart';
 import '../map/geo_circle.dart';
 import '../map/offline_map_manager.dart';
 import '../packet/get-location.dart';
@@ -22,7 +25,17 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   String _tilePath = '';
   bool _isLoading = true;
   bool _isDownloading = false;
+  bool _isRefreshing = false;
   final MapController _mapController = MapController();
+
+  /// Aggregated SOS density cells (~50m each).
+  List<_SosCluster> _clusters = [];
+
+  /// Refresh the heatmap every 30s so new SOS hits show up without manual reload.
+  Timer? _refreshTimer;
+
+  /// ~50 m cell size in degrees latitude (1° lat ≈ 111 km).
+  static const double _cellDegLat = 50.0 / 111000.0;
 
   RescuerSession? get _session => AppState().rescuerSession.value;
 
@@ -36,13 +49,105 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
     _initMap();
   }
 
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _initMap() async {
     final dir = await getApplicationDocumentsDirectory();
     _tilePath = '${dir.path}/offline_tiles/{z}/{x}/{y}.png';
 
+    await _refreshHeatmap();
+
     if (mounted) {
       setState(() => _isLoading = false);
     }
+
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _refreshHeatmap(),
+    );
+  }
+
+  /// Pull the last 24h of SOS rows from SQLite, drop anything outside the
+  /// assigned zone, and bucket into ~50m cells for a rough density map.
+  Future<void> _refreshHeatmap() async {
+    final session = _session;
+    if (session == null) return;
+    if (_isRefreshing) return;
+    _isRefreshing = true;
+    try {
+      final rows = await getRecentSosMessages(withinHours: 24);
+      final zoneCenter = LatLng(session.lat, session.lng);
+      final radiusM = session.radiusM;
+
+      // cellKey -> (accumulated lat, accumulated lng, count)
+      final Map<String, List<double>> buckets = {};
+
+      for (final row in rows) {
+        final loc = _parseLatLng(row['location']?.toString());
+        if (loc == null) continue;
+
+        final distM = _haversineMeters(zoneCenter, loc);
+        if (distM > radiusM) continue;
+
+        // Cell size in longitude scales with latitude; guard against poles.
+        final cosLat = math.cos(loc.latitude * math.pi / 180.0).abs();
+        final cellDegLng = cosLat < 1e-6 ? _cellDegLat : _cellDegLat / cosLat;
+
+        final latIdx = (loc.latitude / _cellDegLat).floor();
+        final lngIdx = (loc.longitude / cellDegLng).floor();
+        final key = '$latIdx:$lngIdx';
+
+        final bucket = buckets[key] ?? [0.0, 0.0, 0.0];
+        bucket[0] += loc.latitude;
+        bucket[1] += loc.longitude;
+        bucket[2] += 1;
+        buckets[key] = bucket;
+      }
+
+      final clusters = buckets.values.map((b) {
+        final count = b[2].toInt();
+        return _SosCluster(
+          center: LatLng(b[0] / b[2], b[1] / b[2]),
+          count: count,
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() => _clusters = clusters);
+      }
+    } catch (e) {
+      debugPrint('Heatmap refresh failed: $e');
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  static LatLng? _parseLatLng(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    final parts = raw.split(',');
+    if (parts.length != 2) return null;
+    final lat = double.tryParse(parts[0].trim());
+    final lng = double.tryParse(parts[1].trim());
+    if (lat == null || lng == null) return null;
+    if (lat == 0 && lng == 0) return null;
+    return LatLng(lat, lng);
+  }
+
+  /// Haversine distance in metres.
+  static double _haversineMeters(LatLng a, LatLng b) {
+    const r = 6371000.0;
+    final dLat = (b.latitude - a.latitude) * math.pi / 180.0;
+    final dLng = (b.longitude - a.longitude) * math.pi / 180.0;
+    final lat1 = a.latitude * math.pi / 180.0;
+    final lat2 = b.latitude * math.pi / 180.0;
+    final h = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.sin(dLng / 2) * math.sin(dLng / 2) * math.cos(lat1) * math.cos(lat2);
+    return 2 * r * math.asin(math.min(1.0, math.sqrt(h)));
   }
 
   Future<void> _downloadLargeArea() async {
@@ -145,6 +250,11 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
             onPressed: _centerOnUser,
           ),
           IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh heatmap',
+            onPressed: _refreshHeatmap,
+          ),
+          IconButton(
             icon: _isDownloading
                 ? const SizedBox(
                     width: 20,
@@ -205,6 +315,25 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
                 ),
               ],
             ),
+
+            // ── SOS density heatmap (P1-4) ───────────────────────────────
+            if (_clusters.isNotEmpty)
+              CircleLayer(
+                circles: _clusters.map((c) {
+                  // Radius scales with sqrt(count) so a few outliers don't
+                  // swamp the map; opacity climbs with density.
+                  final radiusM = 25.0 + 12.0 * math.sqrt(c.count.toDouble());
+                  final opacity = math.min(0.75, 0.25 + 0.1 * c.count);
+                  return CircleMarker(
+                    point: c.center,
+                    radius: radiusM,
+                    useRadiusInMeter: true,
+                    color: const Color(0xFFE74C3C).withOpacity(opacity),
+                    borderColor: const Color(0xFFE74C3C).withOpacity(0.9),
+                    borderStrokeWidth: 1.0,
+                  );
+                }).toList(),
+              ),
 
             // ── Zone-centre flag ─────────────────────────────────────────
             MarkerLayer(
@@ -345,8 +474,7 @@ class _ZoneInfoCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    );  }
 
   IconData _roleIcon(String role) {
     switch (role.toLowerCase()) {
@@ -388,4 +516,11 @@ class _OfflineFallbackTileProvider extends TileProvider {
           .replaceAll('{y}', coordinates.y.toString()),
     );
   }
+}
+
+// ─── SOS density cluster (P1-4) ─────────────────────────────────────────────
+class _SosCluster {
+  final LatLng center;
+  final int count;
+  const _SosCluster({required this.center, required this.count});
 }
