@@ -121,3 +121,53 @@ Future<void> markAsSynced(String id) async {
     whereArgs: [id],
   );
 }
+
+/// Recent SOS rows in the last [withinHours] hours, newest first.
+/// Used by the rescuer heatmap (P1-4).
+Future<List<Map<String, dynamic>>> getRecentSosMessages({
+  int withinHours = 24,
+}) async {
+  final db = await DatabaseHelper.instance.database;
+  final cutoff = DateTime.now()
+      .toUtc()
+      .subtract(Duration(hours: withinHours))
+      .toIso8601String();
+
+  return await db.query(
+    'messages',
+    where: 'isSos = ? AND time >= ?',
+    whereArgs: [1, cutoff],
+    orderBy: 'time DESC',
+  );
+}
+
+/// Incidents that a rescuer should triage: SOS flag raised in the last
+/// [withinHours] hours, newest first. Used by the report screen (P1-5).
+Future<List<Map<String, dynamic>>> getReportableIncidents({
+  int withinHours = 24,
+}) async {
+  final db = await DatabaseHelper.instance.database;
+  final cutoff = DateTime.now()
+      .toUtc()
+      .subtract(Duration(hours: withinHours))
+      .toIso8601String();
+
+  return await db.query(
+    'messages',
+    where: 'isSos = ? AND time >= ?',
+    whereArgs: [1, cutoff],
+    orderBy: 'time DESC',
+  );
+}
+
+/// Persist a rescuer's acknowledgement state for a message (P1-5).
+/// Valid statuses: `ack`, `enroute`, `resolved`.
+Future<void> updateAckStatus(String messageId, String status) async {
+  final db = await DatabaseHelper.instance.database;
+  await db.update(
+    'messages',
+    {'ackStatus': status},
+    where: 'messageId = ?',
+    whereArgs: [messageId],
+  );
+}

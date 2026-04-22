@@ -19,7 +19,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -38,7 +38,8 @@ class DatabaseHelper {
         hopCount INTEGER DEFAULT 0,
         isSos INTEGER DEFAULT 0,
         isSynced INTEGER DEFAULT 0,
-        lastSyncedAt TEXT
+        lastSyncedAt TEXT,
+        ackStatus TEXT
       );
     ''');
 
@@ -85,6 +86,12 @@ class DatabaseHelper {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_messages_expiresAt ON messages(expiresAt);',
       );
+    if (oldVersion < 3) {
+      // P1-5: track rescuer acknowledgement state per message.
+      try {
+        await db.execute('ALTER TABLE messages ADD COLUMN ackStatus TEXT;');
+      } catch (_) {}
+    }
     }
   }
 
