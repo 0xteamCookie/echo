@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
@@ -43,6 +44,13 @@ class MeshForegroundService {
     if (_initialized) return;
     _initialized = true;
 
+    // iOS has no foreground services. Background execution is driven by
+    // CoreBluetooth callbacks (bluetooth-central / bluetooth-peripheral
+    // UIBackgroundModes in Info.plist). Calling flutter_foreground_task on
+    // iOS would only register a BGAppRefreshTask (fires ≤ once/15 min) which
+    // is unsuitable for the 15 s relay loop. Skip entirely on iOS.
+    if (!Platform.isAndroid) return;
+
     FlutterForegroundTask.initCommunicationPort();
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
@@ -79,6 +87,7 @@ class MeshForegroundService {
   }
 
   static Future<void> stop() async {
+    if (!Platform.isAndroid) return;
     if (await FlutterForegroundTask.isRunningService) {
       await FlutterForegroundTask.stopService();
     }

@@ -97,7 +97,13 @@ Future<void> _startScan() async {
   _scanSubscription = FlutterBluePlus.onScanResults.listen(_onScanResult);
 
   try {
-    await FlutterBluePlus.startScan(timeout: const Duration(seconds: 30));
+    // iOS (CoreBluetooth) silently drops scan results in the background unless
+    // a service UUID filter is provided. Always pass withServices so background
+    // scanning works on both Android and iOS.
+    await FlutterBluePlus.startScan(
+      withServices: [targetServiceUuid],
+      timeout: const Duration(seconds: 30),
+    );
   } catch (e) {
     print("❌ [_startScan] Failed to start scan: $e");
     _isScanning = false;

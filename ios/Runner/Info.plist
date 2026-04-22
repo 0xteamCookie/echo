@@ -61,5 +61,33 @@
 	<!-- P2-15: accelerometer-based fall detection runs locally; no network. -->
 	<key>NSMotionUsageDescription</key>
 	<string>Beacon uses motion sensors to detect falls and offer to auto-broadcast an SOS.</string>
+
+	<!-- iOS BLE — P0 blockers ───────────────────────────────────────────────
+	     NSBluetoothAlwaysUsageDescription: required by flutter_blue_plus and
+	     ble_peripheral; iOS crashes on any BLE call without this key.        -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Beacon uses Bluetooth to relay emergency SOS messages to nearby devices in a peer-to-peer mesh network, even when the screen is off.</string>
+
+	<!-- UIBackgroundModes: required for BLE scan and advertise to continue
+	     after the app is backgrounded. Without these, all BLE activity stops
+	     the moment the user leaves the app.                                   -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+		<string>bluetooth-peripheral</string>
+	</array>
+
+	<!-- Location — required by geolocator and google_maps_flutter.
+	     PlatformException is thrown on every getCurrentPosition() call
+	     without NSLocationWhenInUseUsageDescription.                          -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Beacon uses your location to attach GPS coordinates to SOS messages so rescuers know where you are.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Beacon may use your location in the background to continue stamping coordinates on relayed mesh packets.</string>
+
+	<!-- Camera — required by mobile_scanner (rescuer QR code login).
+	     The app crashes when the QR screen opens without this key.            -->
+	<key>NSCameraUsageDescription</key>
+	<string>Beacon uses the camera to scan the rescuer QR code provided during provisioning.</string>
 </dict>
 </plist>

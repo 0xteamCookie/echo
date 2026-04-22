@@ -20,7 +20,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 const _kPrivKeyKey = 'ed25519_private_key_b64';
 const _kPubKeyKey = 'ed25519_public_key_b64';
 
-const _storage = FlutterSecureStorage();
+const _storage = FlutterSecureStorage(
+  // iOS: use kSecAttrAccessibleAfterFirstUnlock so the key remains readable
+  // when the app is woken in the background by a CoreBluetooth event while
+  // the device is locked (but has been unlocked at least once since boot).
+  // The default kSecAttrAccessibleWhenUnlocked blocks all background relay
+  // signing on a locked iOS device.
+  iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+);
 final _ed25519 = Ed25519();
 
 String? _cachedPrivateSeedB64;
