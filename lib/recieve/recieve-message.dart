@@ -10,12 +10,21 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(
   try {
     // ACKs are control frames, not data packets.
     if (rawMessage.startsWith('ACK||')) {
-      final parts = rawMessage.split('||');
-      if (parts.length >= 3) {
-        final ackMessageId = parts[1];
-        final relayerId = parts[2];
+      final ack = decodeAck(rawMessage);
+      if (ack != null) {
+        final ackMessageId = ack['messageId']!;
+        final relayerId = ack['relayerId']!;
+        final status = ack['status'] ?? 'ack';
         await insertMessageDevice(messageId: ackMessageId, deviceId: relayerId);
-        print("✅ Acknowledgment saved for Msg: $ackMessageId from $relayerId");
+        // Status flows from the rescuer report screen: ack / enroute / resolved.
+        // Only persist explicit statuses; plain "ack" doesn't overwrite a
+        // stronger status already recorded locally by the receiving rescuer.
+        if (status != 'ack') {
+          await updateAckStatus(ackMessageId, status);
+        }
+        print(
+          "✅ Acknowledgment saved for Msg: $ackMessageId from $relayerId (status=$status)",
+        );
       }
       return null;
     }

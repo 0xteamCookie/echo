@@ -119,5 +119,28 @@ Map<String, dynamic>? decodePacket(String raw) {
   return null;
 }
 
-/// Build an ACK control frame (3 fields, plaintext).
-String encodeAck(String messageId, String relayerId) => 'ACK$_delim$messageId$_delim$relayerId';
+/// Build an ACK control frame (plaintext).
+///
+/// v2 shape: `ACK||<messageId>||<relayerId>||<status>` where `status` is one
+/// of `ack` / `enroute` / `resolved` (rescuer report flow).
+/// Legacy 3-field `ACK||<messageId>||<relayerId>` frames are still accepted
+/// by [decodeAck] so older peers stay compatible.
+String encodeAck(
+  String messageId,
+  String relayerId, {
+  String status = 'ack',
+}) =>
+    'ACK$_delim$messageId$_delim$relayerId$_delim$status';
+
+/// Parse an ACK control frame. Returns `null` if [raw] is not an ACK or is
+/// malformed. Accepts both the v2 (4-field) and legacy (3-field) shapes.
+Map<String, String>? decodeAck(String raw) {
+  if (!raw.startsWith('ACK$_delim')) return null;
+  final parts = raw.split(_delim);
+  if (parts.length < 3) return null;
+  return {
+    'messageId': parts[1],
+    'relayerId': parts[2],
+    'status': parts.length >= 4 ? parts[3] : 'ack',
+  };
+}
