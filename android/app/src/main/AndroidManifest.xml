@@ -25,6 +25,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- P2-14: microphone for the voice-to-text SOS mic button. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- P2-15: `sensors_plus` reads the raw accelerometer; this permission is
+         only required on wearables, but harmless on phones. -->
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
+
     <application
         android:label="beacon"
         android:name="${applicationName}"
@@ -57,6 +63,18 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
+        <!-- P2-2: Google Maps Platform API key. The value is resolved at
+             build time from the `MAPS_API_KEY` gradle property; set it via
+             one of:
+               * `~/.gradle/gradle.properties`   (recommended — never checked in)
+               * `android/local.properties`      (per-clone override)
+               * `flutter run --dart-define=MAPS_API_KEY=...` + matching gradle prop
+             Do NOT commit a real key. An empty/placeholder value only causes
+             grey tiles; it never crashes the app. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+
         <!-- P0-3: foreground service hosting BLE scan/advertise + relay tick.
              `flutter_foreground_task` registers the actual class at runtime; we only
              need to declare the service with the correct foregroundServiceType so the
@@ -76,6 +94,11 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- P2-14: required on Android 11+ so `speech_to_text` can
+             enumerate/bind to the system's RecognitionService provider. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
 </manifest>

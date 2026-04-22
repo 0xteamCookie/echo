@@ -28,6 +28,12 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // P2-2: inject the Google Maps Platform API key into the manifest at
+        // build time. Set `MAPS_API_KEY` in `~/.gradle/gradle.properties` or
+        // `android/local.properties`. Missing keys just produce grey tiles.
+        val mapsApiKey: String = (project.findProperty("MAPS_API_KEY") as String?) ?: ""
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {

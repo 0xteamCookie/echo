@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../crypto/ed25519.dart';
 import '../database/db_hook.dart';
 import '../mesh/packet_codec.dart';
 
@@ -33,6 +34,35 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(
     if (packetMap == null) {
       print("❓ [decodeAndSaveMessage] Unparseable frame: $rawMessage");
       return null;
+    }
+
+    // P2-11: verify signatures on v3 packets. v1/v2 are accepted during
+    // soft-migration but flagged `insecure=true` so the UI / sync layer can
+    // surface that downstream. A v3 packet with a bad signature is DROPPED.
+    final protocolVersion = packetMap['protocolVersion'] as int? ?? 1;
+    if (protocolVersion >= 3) {
+      final pubKey = (packetMap['deviceSenderPublicKey'] ?? '').toString();
+      final sig = (packetMap['signature'] ?? '').toString();
+      if (pubKey.isEmpty || sig.isEmpty) {
+        print(
+          "🔒 [decodeAndSaveMessage] Dropping v3 packet ${packetMap['messageId']} — missing key/signature.",
+        );
+        return null;
+      }
+      final canonical = canonicalSignedString(packetMap);
+      final ok = await verifyPacket(canonical, pubKey, sig);
+      if (!ok) {
+        print(
+          "🔒 [decodeAndSaveMessage] Dropping v3 packet ${packetMap['messageId']} — bad signature.",
+        );
+        return null;
+      }
+      packetMap['insecure'] = false;
+    } else {
+      // Legacy/unsigned packet — accept for now so we don't break the mesh
+      // while older peers upgrade, but mark it so downstream code can treat
+      // it as lower trust.
+      packetMap['insecure'] = true;
     }
 
     // P1-2: drop immediately if the TTL is already exhausted before we even

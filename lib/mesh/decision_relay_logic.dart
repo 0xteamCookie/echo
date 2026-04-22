@@ -57,7 +57,17 @@ Future<void> relayMessage(
     final outgoing = Map<String, dynamic>.from(packet);
     outgoing['hopCount'] = currentHops + 1;
 
-    final compactPayload = encodePacketV2(outgoing);
+    // P2-11: prefer v3 if the packet carried a signature + public key
+    // (relays MUST NOT resign — that would break authenticity). Fall back to
+    // v2 for legacy packets that pre-date signing so they keep propagating.
+    final signature = (outgoing['signature'] ?? '').toString();
+    final pubKey = (outgoing['deviceSenderPublicKey'] ?? '').toString();
+    final String compactPayload;
+    if (signature.isNotEmpty && pubKey.isNotEmpty) {
+      compactPayload = encodePacketV3(outgoing, signature);
+    } else {
+      compactPayload = encodePacketV2(outgoing);
+    }
     final bytes = utf8.encode(compactPayload);
     print("📡 [relayMessage] Transmitting messageId: $messageId (hop ${currentHops + 1}/$maxHops).");
     print("📦 [relayMessage] Encoded Packet byte size: ${bytes.length} bytes.");

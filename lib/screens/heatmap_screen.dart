@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import '../database/db_hook.dart';
@@ -14,6 +16,11 @@ import '../models/rescuer_session.dart';
 
 /// Shows the rescuer's assigned zone on a map with a highlighted region circle.
 /// Centred on the JWT-assigned lat/lng with radius_m as the zone boundary.
+///
+/// P2-2: when the device is online we use `google_maps_flutter` so responders
+/// get first-class Google Maps imagery + search quality. When offline we fall
+/// back to the original `flutter_map` + OSM renderer, which keeps using our
+/// downloaded offline tile cache.
 class HeatmapScreen extends StatefulWidget {
   const HeatmapScreen({super.key});
 
@@ -26,7 +33,18 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   bool _isLoading = true;
   bool _isDownloading = false;
   bool _isRefreshing = false;
+
+  /// flutter_map controller (offline path).
   final MapController _mapController = MapController();
+
+  /// google_maps_flutter controller (online path). Populated in onMapCreated.
+  gmaps.GoogleMapController? _googleController;
+
+  /// Whether connectivity_plus reports an active network. Determines which
+  /// map widget we render.
+  bool _isOnline = false;
+
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
   /// Aggregated SOS density cells (~50m each).
   List<_SosCluster> _clusters = [];
@@ -36,6 +54,12 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
 
   /// ~50 m cell size in degrees latitude (1° lat ≈ 111 km).
   static const double _cellDegLat = 50.0 / 111000.0;
+
+  /// API key compiled in via `--dart-define=MAPS_API_KEY=...`. Android reads
+  /// the key from AndroidManifest meta-data at build time; we only use this
+  /// constant to surface a "key not configured" banner in debug builds.
+  static const String _mapsApiKey =
+      String.fromEnvironment('MAPS_API_KEY', defaultValue: '');
 
   RescuerSession? get _session => AppState().rescuerSession.value;
 
@@ -52,12 +76,23 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _connectivitySub?.cancel();
+    _googleController?.dispose();
     super.dispose();
   }
 
   Future<void> _initMap() async {
     final dir = await getApplicationDocumentsDirectory();
     _tilePath = '${dir.path}/offline_tiles/{z}/{x}/{y}.png';
+
+    await _updateConnectivity();
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen((results) {
+      final online = results.any((r) => r != ConnectivityResult.none);
+      if (mounted && online != _isOnline) {
+        setState(() => _isOnline = online);
+      }
+    });
 
     await _refreshHeatmap();
 
@@ -72,6 +107,20 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
     );
   }
 
+  Future<void> _updateConnectivity() async {
+    try {
+      final results = await Connectivity().checkConnectivity();
+      final online = results.any((r) => r != ConnectivityResult.none);
+      if (mounted) {
+        setState(() => _isOnline = online);
+      } else {
+        _isOnline = online;
+      }
+    } catch (_) {
+      _isOnline = false;
+    }
+  }
+
   /// Pull the last 24h of SOS rows from SQLite, drop anything outside the
   /// assigned zone, and bucket into ~50m cells for a rough density map.
   Future<void> _refreshHeatmap() async {
@@ -84,7 +133,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
       final zoneCenter = LatLng(session.lat, session.lng);
       final radiusM = session.radiusM;
 
-      // cellKey -> (accumulated lat, accumulated lng, count)
       final Map<String, List<double>> buckets = {};
 
       for (final row in rows) {
@@ -94,7 +142,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
         final distM = _haversineMeters(zoneCenter, loc);
         if (distM > radiusM) continue;
 
-        // Cell size in longitude scales with latitude; guard against poles.
         final cosLat = math.cos(loc.latitude * math.pi / 180.0).abs();
         final cellDegLng = cosLat < 1e-6 ? _cellDegLat : _cellDegLat / cosLat;
 
@@ -146,7 +193,10 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
     final lat1 = a.latitude * math.pi / 180.0;
     final lat2 = b.latitude * math.pi / 180.0;
     final h = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.sin(dLng / 2) * math.sin(dLng / 2) * math.cos(lat1) * math.cos(lat2);
+        math.sin(dLng / 2) *
+            math.sin(dLng / 2) *
+            math.cos(lat1) *
+            math.cos(lat2);
     return 2 * r * math.asin(math.min(1.0, math.sqrt(h)));
   }
 
@@ -161,7 +211,8 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
         await OfflineMapManager.downloadLargeAreaLowRes(lat, lng);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('7km low-res map downloaded around you!')),
+            const SnackBar(
+                content: Text('7km low-res map downloaded around you!')),
           );
         }
       } else {
@@ -173,9 +224,9 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
       }
     } catch (e) {
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
-         );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
       }
     } finally {
       if (mounted) {
@@ -196,24 +247,37 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   Future<void> _centerOnUser() async {
     try {
       String locStr = await getCurrentLocationString();
-      if (locStr.contains(',')) {
-        final parts = locStr.split(',');
-        double lat = double.parse(parts[0].trim());
-        double lng = double.parse(parts[1].trim());
-        _mapController.move(LatLng(lat, lng), 15.0);
-      } else {
+      if (!locStr.contains(',')) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Failed to get current location.')),
           );
         }
+        return;
       }
+      final parts = locStr.split(',');
+      final lat = double.parse(parts[0].trim());
+      final lng = double.parse(parts[1].trim());
+      _moveMapTo(LatLng(lat, lng), 15.0);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
       }
+    }
+  }
+
+  void _moveMapTo(LatLng target, double zoom) {
+    if (_isOnline && _googleController != null) {
+      _googleController!.animateCamera(
+        gmaps.CameraUpdate.newLatLngZoom(
+          gmaps.LatLng(target.latitude, target.longitude),
+          zoom,
+        ),
+      );
+    } else {
+      _mapController.move(target, zoom);
     }
   }
 
@@ -242,7 +306,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
           IconButton(
             icon: const Icon(Icons.filter_center_focus),
             tooltip: 'Centre on zone',
-            onPressed: () => _mapController.move(_center, 15.0),
+            onPressed: () => _moveMapTo(_center, 15.0),
           ),
           IconButton(
             icon: const Icon(Icons.my_location),
@@ -252,7 +316,10 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh heatmap',
-            onPressed: _refreshHeatmap,
+            onPressed: () async {
+              await _updateConnectivity();
+              await _refreshHeatmap();
+            },
           ),
           IconButton(
             icon: _isDownloading
@@ -274,11 +341,86 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _buildMap(),
+          : (_isOnline ? _buildOnlineMap() : _buildOfflineMap()),
     );
   }
 
-  Widget _buildMap() {
+  // ── Online: Google Maps Platform ────────────────────────────────────────
+  Widget _buildOnlineMap() {
+    final session = _session!;
+    final zoneColor = _zoneColor(session.role);
+
+    // google_maps_flutter's Circle takes a radius in metres natively, so this
+    // is cheaper and more accurate than the 72-point polygon we draw on
+    // flutter_map. We also approximate the SOS heatmap with one weighted
+    // translucent Circle per cluster (same sqrt weighting as the offline
+    // path); google_maps_flutter does not expose a HeatmapLayer on stable.
+    final Set<gmaps.Circle> circles = {
+      gmaps.Circle(
+        circleId: const gmaps.CircleId('zone'),
+        center: gmaps.LatLng(_center.latitude, _center.longitude),
+        radius: session.radiusM,
+        strokeColor: zoneColor.withOpacity(0.8),
+        strokeWidth: 3,
+        fillColor: zoneColor.withOpacity(0.10),
+      ),
+      for (final c in _clusters)
+        gmaps.Circle(
+          circleId: gmaps.CircleId(
+            'sos_${c.center.latitude}_${c.center.longitude}',
+          ),
+          center: gmaps.LatLng(c.center.latitude, c.center.longitude),
+          radius: 25.0 + 12.0 * math.sqrt(c.count.toDouble()),
+          strokeColor: const Color(0xFFE74C3C).withOpacity(0.9),
+          strokeWidth: 1,
+          fillColor: const Color(0xFFE74C3C)
+              .withOpacity(math.min(0.75, 0.25 + 0.1 * c.count)),
+        ),
+    };
+
+    final Set<gmaps.Marker> markers = {
+      gmaps.Marker(
+        markerId: const gmaps.MarkerId('zone-center'),
+        position: gmaps.LatLng(_center.latitude, _center.longitude),
+        infoWindow: const gmaps.InfoWindow(title: 'Assigned zone centre'),
+      ),
+    };
+
+    return Stack(
+      children: [
+        gmaps.GoogleMap(
+          initialCameraPosition: gmaps.CameraPosition(
+            target: gmaps.LatLng(_center.latitude, _center.longitude),
+            zoom: 15.0,
+          ),
+          minMaxZoomPreference: const gmaps.MinMaxZoomPreference(12, 18),
+          myLocationEnabled: true,
+          myLocationButtonEnabled: false,
+          compassEnabled: true,
+          mapToolbarEnabled: false,
+          circles: circles,
+          markers: markers,
+          onMapCreated: (c) => _googleController = c,
+        ),
+        if (_mapsApiKey.isEmpty)
+          const Positioned(
+            top: 8,
+            left: 8,
+            right: 8,
+            child: _MissingKeyBanner(),
+          ),
+        Positioned(
+          bottom: 16,
+          left: 16,
+          right: 16,
+          child: _ZoneInfoCard(session: session),
+        ),
+      ],
+    );
+  }
+
+  // ── Offline: flutter_map + cached OSM tiles ─────────────────────────────
+  Widget _buildOfflineMap() {
     final session = _session!;
     final zoneColor = _zoneColor(session.role);
 
@@ -302,8 +444,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
                 'https://tile.openstreetmap.org/13/4093/2723.png',
               ),
             ),
-
-            // ── Assigned zone polygon ────────────────────────────────────
             PolygonLayer(
               polygons: [
                 Polygon(
@@ -315,14 +455,11 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
                 ),
               ],
             ),
-
-            // ── SOS density heatmap (P1-4) ───────────────────────────────
             if (_clusters.isNotEmpty)
               CircleLayer(
                 circles: _clusters.map((c) {
-                  // Radius scales with sqrt(count) so a few outliers don't
-                  // swamp the map; opacity climbs with density.
-                  final radiusM = 25.0 + 12.0 * math.sqrt(c.count.toDouble());
+                  final radiusM =
+                      25.0 + 12.0 * math.sqrt(c.count.toDouble());
                   final opacity = math.min(0.75, 0.25 + 0.1 * c.count);
                   return CircleMarker(
                     point: c.center,
@@ -334,8 +471,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
                   );
                 }).toList(),
               ),
-
-            // ── Zone-centre flag ─────────────────────────────────────────
             MarkerLayer(
               markers: [
                 Marker(
@@ -366,8 +501,12 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
             ),
           ],
         ),
-
-        // ── Zone info card at bottom ─────────────────────────────────────
+        const Positioned(
+          top: 8,
+          left: 8,
+          right: 8,
+          child: _OfflineBanner(),
+        ),
         Positioned(
           bottom: 16,
           left: 16,
@@ -474,7 +613,8 @@ class _ZoneInfoCard extends StatelessWidget {
           ),
         ],
       ),
-    );  }
+    );
+  }
 
   IconData _roleIcon(String role) {
     switch (role.toLowerCase()) {
@@ -523,4 +663,60 @@ class _SosCluster {
   final LatLng center;
   final int count;
   const _SosCluster({required this.center, required this.count});
+}
+
+class _OfflineBanner extends StatelessWidget {
+  const _OfflineBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.cloud_off, color: Colors.white, size: 16),
+          SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              'Offline — using cached tiles',
+              style: TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MissingKeyBanner extends StatelessWidget {
+  const _MissingKeyBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.white, size: 16),
+          SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              'MAPS_API_KEY not set at build time',
+              style: TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

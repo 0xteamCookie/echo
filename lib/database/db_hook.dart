@@ -1,13 +1,37 @@
 import 'package:sqflite/sqflite.dart';
 import 'initialize_db.dart';
 
+// Columns that actually exist in the `messages` table. Any extra keys on the
+// incoming packet map (e.g. `protocolVersion`, `signature`,
+// `deviceSenderPublicKey`, `triage`, `isNew`, `relayerMac`) are stripped
+// before insert so sqflite doesn't throw "no such column".
+const Set<String> _messageColumns = {
+  'messageId',
+  'message',
+  'deviceId',
+  'senderName',
+  'expiresAt',
+  'location',
+  'time',
+  'hopCount',
+  'isSos',
+  'isSynced',
+  'lastSyncedAt',
+  'ackStatus',
+  'signature',
+  'deviceSenderPublicKey',
+  'triage',
+};
 
 Future<void> insertMessage(Map<String, dynamic> data) async {
   final db = await DatabaseHelper.instance.database;
 
   // Guarantee `time` is populated so `ORDER BY time ASC` in getUnsyncedMessages
   // works for every row (including packets relayed from peers that omit it).
-  final row = Map<String, dynamic>.from(data);
+  final row = <String, dynamic>{
+    for (final e in data.entries)
+      if (_messageColumns.contains(e.key)) e.key: e.value,
+  };
   if (row['time'] == null || (row['time'] is String && (row['time'] as String).isEmpty)) {
     final expiresAt = row['expiresAt'];
     String? derived;

@@ -45,5 +45,21 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- P2-2: Google Maps Platform API key. In CI and local builds, override
+	     via Xcode User-Defined build setting or xcconfig so the raw key is
+	     never checked in (e.g. `GMS_API_KEY = $(inherited)` in Debug.xcconfig
+	     and map `GMSApiKey = $(GMS_API_KEY)` here). Empty string = grey tiles,
+	     not a crash. -->
+	<key>GMSApiKey</key>
+	<string>$(GMS_API_KEY)</string>
+	<!-- P2-14: voice SOS. Shown when the user first taps the mic on the SOS
+	     screen. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Beacon uses the microphone to transcribe spoken SOS messages when you hold the mic button.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Beacon converts your spoken SOS into text so rescuers receive your message.</string>
+	<!-- P2-15: accelerometer-based fall detection runs locally; no network. -->
+	<key>NSMotionUsageDescription</key>
+	<string>Beacon uses motion sensors to detect falls and offer to auto-broadcast an SOS.</string>
 </dict>
 </plist>

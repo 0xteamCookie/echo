@@ -1,24 +1,26 @@
 /// Beacon BLE mesh wire format.
 ///
-/// v2 packet (`||`-delimited, 10 fields including version tag):
+/// v3 packet (`||`-delimited, 13 fields including version tag) — P2-11 adds a
+/// per-device Ed25519 signature and the sender's public key so receivers can
+/// verify authenticity:
+///
+/// ```
+/// v3||<messageId>||<b64(message)>||<deviceId>||<b64(senderName)>||<expiresAt>||<b64(location)>||<time>||<hopCount>||<isSos>||<b64(senderPublicKey)>||<b64(triage)>||<b64(signature)>
+/// ```
+///
+/// The signed canonical string EXCLUDES `hopCount` and the trailing
+/// `<signature>` field, so relays can bump the TTL without invalidating the
+/// sender's signature.
+///
+/// v2 packet (prior, unsigned):
 ///
 /// ```
 /// v2||<messageId>||<b64(message)>||<deviceId>||<b64(senderName)>||<expiresAt>||<b64(location)>||<time>||<hopCount>||<isSos>
 /// ```
 ///
-/// Text-bearing fields (`message`, `senderName`, `location`) are base64-encoded
-/// so arbitrary user input containing `||` can never corrupt the frame (P1-1).
-/// `time` is the original UTC timestamp of the SOS/message (stable across
-/// hops so sync ordering is correct). `hopCount` enables a strict TTL so
-/// dense meshes don't flood forever (P1-2).
-///
-/// v1 packet (legacy) is still accepted on receive for backward-compat only:
-///
-/// ```
-/// <messageId>||<message>||<deviceId>||<senderName>||<expiresAt>||<location>||<isSos>
-/// ```
-///
-/// All outgoing packets MUST use v2.
+/// Text-bearing fields are base64-encoded so arbitrary user input containing
+/// `||` can never corrupt the frame (P1-1). v1 (legacy) is still accepted on
+/// receive for backward-compat only; all outgoing packets MUST use v3.
 library;
 
 import 'dart:convert';
@@ -27,6 +29,7 @@ import 'dart:convert';
 const int maxHops = 8;
 
 const String _v2Tag = 'v2';
+const String _v3Tag = 'v3';
 const String _delim = '||';
 
 String _b64Encode(String? value) {
@@ -44,7 +47,77 @@ String _b64Decode(String encoded) {
   }
 }
 
-/// Serialize a packet map to the v2 wire format.
+/// Build the canonical "what we sign" string for a v3 packet. The hop count
+/// is intentionally omitted so relays can bump the TTL without breaking the
+/// sender's signature. The trailing `<signature>` trailer is also omitted by
+/// definition. Field order MUST stay stable between sender and verifier.
+String canonicalSignedString(Map<String, dynamic> packet) {
+  final messageId = (packet['messageId'] ?? '').toString();
+  final message = (packet['message'] ?? '').toString();
+  final deviceId = (packet['deviceId'] ?? '').toString();
+  final senderName = (packet['senderName'] ?? '').toString();
+  final expiresAt = (packet['expiresAt'] ?? '').toString();
+  final location = (packet['location'] ?? '').toString();
+  final time = (packet['time'] ?? '').toString();
+  final isSos = (packet['isSos'] is int)
+      ? packet['isSos'] as int
+      : int.tryParse((packet['isSos'] ?? '0').toString()) ?? 0;
+  final pubKey = (packet['deviceSenderPublicKey'] ?? '').toString();
+  final triage = (packet['triage'] ?? '').toString();
+
+  return [
+    _v3Tag,
+    messageId,
+    _b64Encode(message),
+    deviceId,
+    _b64Encode(senderName),
+    expiresAt,
+    _b64Encode(location),
+    time,
+    '$isSos',
+    pubKey,
+    _b64Encode(triage),
+  ].join(_delim);
+}
+
+/// Serialize a packet map to the v3 wire format. [signatureB64] is the base64
+/// Ed25519 signature over [canonicalSignedString] of the same packet map.
+String encodePacketV3(Map<String, dynamic> packet, String signatureB64) {
+  final messageId = (packet['messageId'] ?? '').toString();
+  final message = (packet['message'] ?? '').toString();
+  final deviceId = (packet['deviceId'] ?? '').toString();
+  final senderName = (packet['senderName'] ?? '').toString();
+  final expiresAt = (packet['expiresAt'] ?? '').toString();
+  final location = (packet['location'] ?? '').toString();
+  final time = (packet['time'] ?? '').toString();
+  final hopCount = (packet['hopCount'] is int)
+      ? packet['hopCount'] as int
+      : int.tryParse((packet['hopCount'] ?? '0').toString()) ?? 0;
+  final isSos = (packet['isSos'] is int)
+      ? packet['isSos'] as int
+      : int.tryParse((packet['isSos'] ?? '0').toString()) ?? 0;
+  final pubKey = (packet['deviceSenderPublicKey'] ?? '').toString();
+  final triage = (packet['triage'] ?? '').toString();
+
+  return [
+    _v3Tag,
+    messageId,
+    _b64Encode(message),
+    deviceId,
+    _b64Encode(senderName),
+    expiresAt,
+    _b64Encode(location),
+    time,
+    '$hopCount',
+    '$isSos',
+    pubKey,
+    _b64Encode(triage),
+    signatureB64,
+  ].join(_delim);
+}
+
+/// Serialize a packet map to the v2 wire format. Kept for tests and
+/// back-compat (e.g. peers that don't yet support v3).
 String encodePacketV2(Map<String, dynamic> packet) {
   final messageId = (packet['messageId'] ?? '').toString();
   final message = (packet['message'] ?? '').toString();
@@ -74,8 +147,19 @@ String encodePacketV2(Map<String, dynamic> packet) {
   ].join(_delim);
 }
 
-/// Decode a v2 (preferred) or v1 (legacy) packet. Returns `null` if the frame
-/// is an ACK, malformed, or unknown.
+/// Decode a v3 (preferred) / v2 / v1 (legacy) packet. Returns `null` if the
+/// frame is an ACK, malformed, or unknown.
+///
+/// v3 packets populate `deviceSenderPublicKey`, `signature` and `triage`
+/// keys on the returned map. Signature verification is left to the caller
+/// (see `receive-message.dart`). v1/v2 packets omit these fields; callers
+/// should treat them as `insecure` (soft-migration tolerance per P2-11).
+///
+/// TODO(P2-11 — trusted issuer): once a rescuer/admin issues a JWT that
+/// binds `deviceId → publicKey`, reject v3 packets whose
+/// `deviceSenderPublicKey` doesn't match the bound key for `deviceId`. For
+/// now we accept any sender-declared public key and only enforce that the
+/// signature verifies against it.
 Map<String, dynamic>? decodePacket(String raw) {
   if (raw.startsWith('ACK$_delim')) {
     // ACKs are handled by the caller; not a data packet.
@@ -83,8 +167,28 @@ Map<String, dynamic>? decodePacket(String raw) {
   }
 
   final parts = raw.split(_delim);
+  if (parts.isEmpty) return null;
 
-  if (parts.isNotEmpty && parts.first == _v2Tag) {
+  if (parts.first == _v3Tag) {
+    if (parts.length != 13) return null;
+    return {
+      'messageId': parts[1],
+      'message': _b64Decode(parts[2]),
+      'deviceId': parts[3],
+      'senderName': _b64Decode(parts[4]),
+      'expiresAt': parts[5],
+      'location': _b64Decode(parts[6]),
+      'time': parts[7],
+      'hopCount': int.tryParse(parts[8]) ?? 0,
+      'isSos': int.tryParse(parts[9]) ?? 0,
+      'deviceSenderPublicKey': parts[10],
+      'triage': _b64Decode(parts[11]),
+      'signature': parts[12],
+      'protocolVersion': 3,
+    };
+  }
+
+  if (parts.first == _v2Tag) {
     if (parts.length != 10) return null;
     return {
       'messageId': parts[1],

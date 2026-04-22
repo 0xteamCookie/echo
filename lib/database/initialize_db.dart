@@ -19,7 +19,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -39,7 +39,10 @@ class DatabaseHelper {
         isSos INTEGER DEFAULT 0,
         isSynced INTEGER DEFAULT 0,
         lastSyncedAt TEXT,
-        ackStatus TEXT
+        ackStatus TEXT,
+        signature TEXT,
+        deviceSenderPublicKey TEXT,
+        triage TEXT
       );
     ''');
 
@@ -90,6 +93,21 @@ class DatabaseHelper {
       // P1-5: track rescuer acknowledgement state per message.
       try {
         await db.execute('ALTER TABLE messages ADD COLUMN ackStatus TEXT;');
+      } catch (_) {}
+    }
+    if (oldVersion < 4) {
+      // P2-11: ed25519 signature + sender public key fields, and P2-7
+      // on-device triage blob. All nullable; v1/v2 rows stay valid.
+      try {
+        await db.execute('ALTER TABLE messages ADD COLUMN signature TEXT;');
+      } catch (_) {}
+      try {
+        await db.execute(
+          'ALTER TABLE messages ADD COLUMN deviceSenderPublicKey TEXT;',
+        );
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE messages ADD COLUMN triage TEXT;');
       } catch (_) {}
     }
     }
