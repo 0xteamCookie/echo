@@ -4,8 +4,9 @@ import '../central/intialize.dart';
 import '../mesh/ble_collisions.dart';
 import 'decision_relay_logic.dart';
 import 'packet_codec.dart';
+import '../core/constants.dart';
 
-const Duration relayInterval = Duration(seconds: 15);
+const Duration relayInterval = kRelayInterval;
 
 Timer? _relayTimer;
 bool _relayRunning = false;

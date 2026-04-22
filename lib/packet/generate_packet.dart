@@ -2,8 +2,9 @@ import 'get_device_id.dart';
 import 'get_location.dart';
 import 'get_message_id.dart';
 import 'get_user_name.dart';
+import '../core/constants.dart';
 
-const Duration messageLifespan = Duration(days: 1);
+const Duration messageLifespan = kMessageLifespan;
 
 Future<Map<String, dynamic>> generatePacketVariables(String message, {bool isSos = false}) async {
   String deviceId = await DeviceIdManager.getDeviceId();

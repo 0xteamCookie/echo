@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../central/intialize.dart';
+import '../core/constants.dart';
 import '../database/db_hook.dart';
 import '../main.dart';
 import '../mesh/packet_codec.dart';
@@ -192,7 +193,7 @@ class _ReportScreenState extends State<ReportScreen> {
 
 /// Haversine distance in metres. Top-level so the card widget can reuse it.
 double haversineMeters(double lat1, double lng1, double lat2, double lng2) {
-  const r = 6371000.0;
+  const r = kEarthRadiusMetres;
   final dLat = (lat2 - lat1) * math.pi / 180.0;
   final dLng = (lng2 - lng1) * math.pi / 180.0;
   final a = math.sin(dLat / 2) * math.sin(dLat / 2) +

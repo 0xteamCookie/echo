@@ -21,15 +21,16 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/constants.dart';
 
-const _kAutoSosEnabledKey = 'auto_sos_enabled';
+const _kAutoSosEnabledKey = kPrefAutoSosEnabled;
 
-const double _gSpikeThreshold = 3.0; // multiples of g
-const double _gravity = 9.80665;
-const double _stillnessBand = 0.30 * _gravity; // ±0.3 g around gravity
-const Duration _spikeWindow = Duration(seconds: 10);
-const Duration _immobilityRequired = Duration(minutes: 2);
-const Duration _countdownDuration = Duration(seconds: 30);
+const double _gSpikeThreshold = kFallGSpikeThreshold;
+const double _gravity = kStandardGravity;
+const double _stillnessBand = kStillnessBand;
+const Duration _spikeWindow = kFallSpikeWindow;
+const Duration _immobilityRequired = kFallImmobilityRequired;
+const Duration _countdownDuration = kFallCountdownDuration;
 
 /// Callback used by the UI to surface the 30-second cancellable countdown.
 /// [onCancel] cancels the pending auto-SOS; [onConfirm] skips the countdown

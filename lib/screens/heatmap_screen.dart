@@ -13,6 +13,7 @@ import '../map/offline_map_manager.dart';
 import '../packet/get_location.dart';
 import '../main.dart';
 import '../models/rescuer_session.dart';
+import '../core/constants.dart';
 
 /// Shows the rescuer's assigned zone on a map with a highlighted region circle.
 /// Centred on the JWT-assigned lat/lng with radius_m as the zone boundary.
@@ -53,7 +54,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   Timer? _refreshTimer;
 
   /// ~50 m cell size in degrees latitude (1° lat ≈ 111 km).
-  static const double _cellDegLat = 50.0 / 111000.0;
+  static const double _cellDegLat = kHeatmapCellDegLat;
 
   /// API key compiled in via `--dart-define=MAPS_API_KEY=...`. Android reads
   /// the key from AndroidManifest meta-data at build time; we only use this
@@ -102,7 +103,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
 
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(
-      const Duration(seconds: 30),
+      kHeatmapRefreshInterval,
       (_) => _refreshHeatmap(),
     );
   }
@@ -187,7 +188,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
 
   /// Haversine distance in metres.
   static double _haversineMeters(LatLng a, LatLng b) {
-    const r = 6371000.0;
+    const r = kEarthRadiusMetres;
     final dLat = (b.latitude - a.latitude) * math.pi / 180.0;
     final dLng = (b.longitude - a.longitude) * math.pi / 180.0;
     final lat1 = a.latitude * math.pi / 180.0;

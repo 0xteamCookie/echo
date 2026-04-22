@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import '../core/constants.dart';
 
 class OfflineMapManager {
   static Future<void> downloadMapArea(
@@ -13,14 +14,14 @@ class OfflineMapManager {
     final dir = await getApplicationDocumentsDirectory();
     final basePath = '${dir.path}/offline_tiles';
 
-    const urlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const urlTemplate = kOsmTileUrl;
 
     double minLat = centerLat - 0.01;
     double maxLat = centerLat + 0.01;
     double minLon = centerLon - 0.01;
     double maxLon = centerLon + 0.01;
 
-    for (int z = 13; z <= 17; z++) {
+    for (int z = kOfflineZoomDetailedMin; z <= kOfflineZoomDetailedMax; z++) {
       int minX = _lon2tilex(minLon, z);
       int maxX = _lon2tilex(maxLon, z);
       int minY = _lat2tiley(maxLat, z);
@@ -54,7 +55,7 @@ class OfflineMapManager {
     final dir = await getApplicationDocumentsDirectory();
     final basePath = '${dir.path}/offline_tiles';
 
-    const urlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const urlTemplate = kOsmTileUrl;
 
     // ~7km radius is about 0.063 degrees offset
     double offset = 0.063;
@@ -63,8 +64,8 @@ class OfflineMapManager {
     double minLon = centerLon - offset;
     double maxLon = centerLon + offset;
 
-    // Zoom 10 to 13 for low resolution
-    for (int z = 10; z <= 13; z++) {
+    // Zoom kOfflineZoomLowResMin to kOfflineZoomLowResMax for low resolution
+    for (int z = kOfflineZoomLowResMin; z <= kOfflineZoomLowResMax; z++) {
       int minX = _lon2tilex(minLon, z);
       int maxX = _lon2tilex(maxLon, z);
       int minY = _lat2tiley(maxLat, z);

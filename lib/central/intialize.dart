@@ -3,18 +3,19 @@ import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../mesh/ble_collisions.dart';
+import '../core/constants.dart';
 
 // ─── UUIDs
-final Guid targetServiceUuid = Guid("12345678-1234-5678-1234-56789abcdef0");
-final Guid targetCharacteristicUuid = Guid("12345678-1234-5678-1234-56789abcdefF");
+final Guid targetServiceUuid = Guid(kServiceUuid);
+final Guid targetCharacteristicUuid = Guid(kCharacteristicUuid);
 final String _targetServiceUuidLower = targetServiceUuid.toString().toLowerCase();
 final String _targetCharUuidLower = targetCharacteristicUuid.toString().toLowerCase();
 
 // ─── Callbacks & State 
 final Map<String, Map<String, dynamic>> _seenDevices = {};
 
-// P3-5: prune devices not seen in the last 5 min so the relay list stays fresh.
-const Duration _seenDeviceTtl = Duration(minutes: 5);
+// P3-5: prune devices not seen in the last kSeenDeviceTtl so the relay list stays fresh.
+const Duration _seenDeviceTtl = kSeenDeviceTtl;
 Timer? _seenDeviceSweepTimer;
 
 StreamSubscription? _scanSubscription;

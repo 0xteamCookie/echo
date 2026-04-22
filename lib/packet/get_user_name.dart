@@ -1,7 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/constants.dart';
 
 class UserSettings {
-  static const String _nameKey = 'user_name';
+  static const String _nameKey = kPrefUserName;
 
   static Future<String> getName() async {
     final prefs = await SharedPreferences.getInstance();

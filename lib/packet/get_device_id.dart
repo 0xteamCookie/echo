@@ -1,8 +1,9 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import '../core/constants.dart';
 
 class DeviceIdManager {
-  static const String _deviceIdKey = 'ble_mesh_device_id';
+  static const String _deviceIdKey = kPrefDeviceId;
   static String? _cachedDeviceId;
 
   static Future<String> getDeviceId() async {

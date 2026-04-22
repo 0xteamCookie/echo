@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:ble_peripheral/ble_peripheral.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../core/constants.dart';
 
-const String myServiceUuid = "12345678-1234-5678-1234-56789abcdef0";
-const String myCharacteristicUuid = "12345678-1234-5678-1234-56789abcdefF";
+const String myServiceUuid = kServiceUuid;
+const String myCharacteristicUuid = kCharacteristicUuid;
 
 // Add a global callback for when a raw string is received via GATT Write
 Function(String rawMessage, String senderDeviceId)? onPeripheralMessageReceived;
