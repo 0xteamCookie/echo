@@ -68,7 +68,7 @@
              one of:
                * `~/.gradle/gradle.properties`   (recommended — never checked in)
                * `android/local.properties`      (per-clone override)
-               * `flutter run --dart-define=MAPS_API_KEY=...` + matching gradle prop
+               * `flutter run -dart-define=MAPS_API_KEY=...` + matching gradle prop
              Do NOT commit a real key. An empty/placeholder value only causes
              grey tiles; it never crashes the app. -->
         <meta-data
