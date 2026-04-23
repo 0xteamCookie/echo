@@ -63,18 +63,6 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- P2-2: Google Maps Platform API key. The value is resolved at
-             build time from the `MAPS_API_KEY` gradle property; set it via
-             one of:
-               * `~/.gradle/gradle.properties`   (recommended — never checked in)
-               * `android/local.properties`      (per-clone override)
-               * `flutter run -dart-define=MAPS_API_KEY=...` + matching gradle prop
-             Do NOT commit a real key. An empty/placeholder value only causes
-             grey tiles; it never crashes the app. -->
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="${MAPS_API_KEY}" />
-
         <!-- P0-3: foreground service hosting BLE scan/advertise + relay tick.
              `flutter_foreground_task` registers the actual class at runtime; we only
              need to declare the service with the correct foregroundServiceType so the

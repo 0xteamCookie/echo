@@ -1,16 +1,62 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../main.dart';
 import '../models/rescuer_session.dart';
+import '../online/announcements.dart';
 import '../services/activity_monitor.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List<Announcement> _announcements = const [];
+  bool _loadingAnnouncements = true;
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAnnouncements();
+    // Refresh every 2 minutes — announcements are low-frequency.
+    _refreshTimer = Timer.periodic(const Duration(minutes: 2), (_) {
+      _loadAnnouncements();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadAnnouncements() async {
+    final items = await fetchAnnouncements(limit: 20);
+    if (!mounted) return;
+    setState(() {
+      _announcements = items;
+      _loadingAnnouncements = false;
+    });
+  }
+
+  String _relativeTime(DateTime when) {
+    final diff = DateTime.now().difference(when);
+    if (diff.inSeconds < 60) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24) return '${diff.inHours} h ago';
+    return '${diff.inDays} d ago';
+  }
 
   @override
   Widget build(BuildContext context) {
     final session = AppState().rescuerSession.value;
 
-    return ListView(
+    return RefreshIndicator(
+      onRefresh: _loadAnnouncements,
+      child: ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
         if (session != null) ...[
@@ -57,32 +103,41 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        _SimpleAnnouncement(
-          text: 'Move to top of buildings. Flooding reported in lower sections.',
-          time: '2 min ago',
-          sender: 'Emergency Coord.',
-        ),
-        _SimpleAnnouncement(
-          text: 'Medical team needed at Block C ground floor. Bring supplies.',
-          time: '8 min ago',
-          sender: 'Node-7F2A',
-        ),
-        _SimpleAnnouncement(
-          text: 'Assembly point: East courtyard. All unassigned personnel gather for headcount.',
-          time: '15 min ago',
-          sender: 'Alpha-Team Lead',
-        ),
-        _SimpleAnnouncement(
-          text: 'Power station is operational. The generator is running in the storage bay.',
-          time: '22 min ago',
-          sender: 'Node-3B9C',
-        ),
-        _SimpleAnnouncement(
-          text: 'Sector 4 is all clear. Safe to transit through northern corridor.',
-          time: '41 min ago',
-          sender: 'Recon Team',
-        ),
+        if (_loadingAnnouncements && _announcements.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          )
+        else if (_announcements.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Text(
+              'No announcements yet.',
+              style: TextStyle(
+                fontSize: 13,
+                color: BeaconColors.textLight,
+                fontFamily: 'Inter',
+              ),
+            ),
+          )
+        else
+          ..._announcements.map(
+            (a) => _SimpleAnnouncement(
+              text: a.message,
+              time: _relativeTime(a.createdAt),
+              sender: a.createdBy?.isNotEmpty == true
+                  ? a.createdBy!
+                  : (a.locationName.isNotEmpty ? a.locationName : 'Announcement'),
+            ),
+          ),
       ],
+    ),
     );
   }
 }

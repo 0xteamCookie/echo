@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import '../database/db_hook.dart';
@@ -18,10 +17,9 @@ import '../core/constants.dart';
 /// Shows the rescuer's assigned zone on a map with a highlighted region circle.
 /// Centred on the JWT-assigned lat/lng with radius_m as the zone boundary.
 ///
-/// P2-2: when the device is online we use `google_maps_flutter` so responders
-/// get first-class Google Maps imagery + search quality. When offline we fall
-/// back to the original `flutter_map` + OSM renderer, which keeps using our
-/// downloaded offline tile cache.
+/// Uses `flutter_map` + OpenStreetMap (Leaflet-style) tiles for both online
+/// and offline. Online, the provider falls through to OSM's tile server;
+/// offline, only downloaded tiles render.
 class HeatmapScreen extends StatefulWidget {
   const HeatmapScreen({super.key});
 
@@ -35,14 +33,11 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   bool _isDownloading = false;
   bool _isRefreshing = false;
 
-  /// flutter_map controller (offline path).
+  /// flutter_map controller.
   final MapController _mapController = MapController();
 
-  /// google_maps_flutter controller (online path). Populated in onMapCreated.
-  gmaps.GoogleMapController? _googleController;
-
-  /// Whether connectivity_plus reports an active network. Determines which
-  /// map widget we render.
+  /// Whether connectivity_plus reports an active network. Used only to toggle
+  /// the "offline" banner; the tile provider handles both modes transparently.
   bool _isOnline = false;
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
@@ -55,12 +50,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
 
   /// ~50 m cell size in degrees latitude (1° lat ≈ 111 km).
   static const double _cellDegLat = kHeatmapCellDegLat;
-
-  /// API key compiled in via `--dart-define=MAPS_API_KEY=...`. Android reads
-  /// the key from AndroidManifest meta-data at build time; we only use this
-  /// constant to surface a "key not configured" banner in debug builds.
-  static const String _mapsApiKey =
-      String.fromEnvironment('MAPS_API_KEY', defaultValue: '');
 
   RescuerSession? get _session => AppState().rescuerSession.value;
 
@@ -78,7 +67,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   void dispose() {
     _refreshTimer?.cancel();
     _connectivitySub?.cancel();
-    _googleController?.dispose();
     super.dispose();
   }
 
@@ -270,16 +258,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   }
 
   void _moveMapTo(LatLng target, double zoom) {
-    if (_isOnline && _googleController != null) {
-      _googleController!.animateCamera(
-        gmaps.CameraUpdate.newLatLngZoom(
-          gmaps.LatLng(target.latitude, target.longitude),
-          zoom,
-        ),
-      );
-    } else {
-      _mapController.move(target, zoom);
-    }
+    _mapController.move(target, zoom);
   }
 
   @override
@@ -342,86 +321,12 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : (_isOnline ? _buildOnlineMap() : _buildOfflineMap()),
+          : _buildMap(),
     );
   }
 
-  // ── Online: Google Maps Platform ────────────────────────────────────────
-  Widget _buildOnlineMap() {
-    final session = _session!;
-    final zoneColor = _zoneColor(session.role);
-
-    // google_maps_flutter's Circle takes a radius in metres natively, so this
-    // is cheaper and more accurate than the 72-point polygon we draw on
-    // flutter_map. We also approximate the SOS heatmap with one weighted
-    // translucent Circle per cluster (same sqrt weighting as the offline
-    // path); google_maps_flutter does not expose a HeatmapLayer on stable.
-    final Set<gmaps.Circle> circles = {
-      gmaps.Circle(
-        circleId: const gmaps.CircleId('zone'),
-        center: gmaps.LatLng(_center.latitude, _center.longitude),
-        radius: session.radiusM,
-        strokeColor: zoneColor.withOpacity(0.8),
-        strokeWidth: 3,
-        fillColor: zoneColor.withOpacity(0.10),
-      ),
-      for (final c in _clusters)
-        gmaps.Circle(
-          circleId: gmaps.CircleId(
-            'sos_${c.center.latitude}_${c.center.longitude}',
-          ),
-          center: gmaps.LatLng(c.center.latitude, c.center.longitude),
-          radius: 25.0 + 12.0 * math.sqrt(c.count.toDouble()),
-          strokeColor: const Color(0xFFE74C3C).withOpacity(0.9),
-          strokeWidth: 1,
-          fillColor: const Color(0xFFE74C3C)
-              .withOpacity(math.min(0.75, 0.25 + 0.1 * c.count)),
-        ),
-    };
-
-    final Set<gmaps.Marker> markers = {
-      gmaps.Marker(
-        markerId: const gmaps.MarkerId('zone-center'),
-        position: gmaps.LatLng(_center.latitude, _center.longitude),
-        infoWindow: const gmaps.InfoWindow(title: 'Assigned zone centre'),
-      ),
-    };
-
-    return Stack(
-      children: [
-        gmaps.GoogleMap(
-          initialCameraPosition: gmaps.CameraPosition(
-            target: gmaps.LatLng(_center.latitude, _center.longitude),
-            zoom: 15.0,
-          ),
-          minMaxZoomPreference: const gmaps.MinMaxZoomPreference(12, 18),
-          myLocationEnabled: true,
-          myLocationButtonEnabled: false,
-          compassEnabled: true,
-          mapToolbarEnabled: false,
-          circles: circles,
-          markers: markers,
-          onMapCreated: (c) => _googleController = c,
-        ),
-        if (_mapsApiKey.isEmpty)
-          const Positioned(
-            top: 8,
-            left: 8,
-            right: 8,
-            child: _MissingKeyBanner(),
-          ),
-        Positioned(
-          bottom: 16,
-          left: 16,
-          right: 16,
-          child: _ZoneInfoCard(session: session),
-        ),
-      ],
-    );
-  }
-
-  // ── Offline: flutter_map + cached OSM tiles ─────────────────────────────
-  Widget _buildOfflineMap() {
+  // ── flutter_map + OSM tiles (used for both online and offline) ──────────
+  Widget _buildMap() {
     final session = _session!;
     final zoneColor = _zoneColor(session.role);
 
@@ -501,12 +406,13 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
             ),
           ],
         ),
-        const Positioned(
-          top: 8,
-          left: 8,
-          right: 8,
-          child: _OfflineBanner(),
-        ),
+        if (!_isOnline)
+          const Positioned(
+            top: 8,
+            left: 8,
+            right: 8,
+            child: _OfflineBanner(),
+          ),
         Positioned(
           bottom: 16,
           left: 16,
@@ -693,30 +599,3 @@ class _OfflineBanner extends StatelessWidget {
   }
 }
 
-class _MissingKeyBanner extends StatelessWidget {
-  const _MissingKeyBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.white, size: 16),
-          SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              'MAPS_API_KEY not set at build time',
-              style: TextStyle(color: Colors.white, fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -13,6 +13,7 @@ import 'models/rescuer_session.dart';
 import 'auth/auth_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'online/sync.dart';
+import 'online/rescuer_sync.dart';
 import 'send/send_heartbeat.dart';
 import 'services/activity_monitor.dart';
 import 'services/mesh_foreground_service.dart';
@@ -90,6 +91,19 @@ void _initializeApp() async {
 
   // Sync messages to internet
   syncMessages();
+
+  // If the user is already logged in as a rescuer, start publishing on-duty
+  // heartbeats so the admin dispatch engine can route incidents to them.
+  if (AppState().role.value == UserRole.rescuer) {
+    startRescuerHeartbeat();
+  }
+  AppState().role.addListener(() {
+    if (AppState().role.value == UserRole.rescuer) {
+      startRescuerHeartbeat();
+    } else {
+      stopRescuerHeartbeat();
+    }
+  });
 
   onDeviceListUpdated = (devs) {
     AppState().devices.value = devs;

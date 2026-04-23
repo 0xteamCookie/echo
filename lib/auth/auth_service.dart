@@ -30,6 +30,11 @@ Kba/x7f/qXLePcGA54NvTDIopv+LdUgFUAbmPWFRHwpntHsUlJJk3rJiKVPB1Ifb
       print("✅ VALID USER");
       print("Payload: ${jwt.payload}");
 
+      // Persist the raw JWT so subsequent authenticated backend calls
+      // (e.g. POST /api/rescuer/heartbeat, /api/push/register) can send it
+      // as a Bearer token without re-scanning the QR.
+      await storage.write(key: "rescuer_token", value: token);
+
       await _saveSession(jwt.payload);
       return true;
     } on JWTExpiredException {
@@ -39,6 +44,13 @@ Kba/x7f/qXLePcGA54NvTDIopv+LdUgFUAbmPWFRHwpntHsUlJJk3rJiKVPB1Ifb
       print("❌ INVALID QR / TOKEN: $e");
       return false;
     }
+  }
+
+  /// Returns the raw rescuer JWT (if previously scanned + still in secure
+  /// storage) so callers can send `Authorization: Bearer <token>` to the
+  /// backend. Does not validate expiry — backend will reject expired tokens.
+  static Future<String?> getRawToken() async {
+    return storage.read(key: "rescuer_token");
   }
 
   /// Saves the parsed payload to secure storage and populates AppState.
@@ -92,6 +104,7 @@ Kba/x7f/qXLePcGA54NvTDIopv+LdUgFUAbmPWFRHwpntHsUlJJk3rJiKVPB1Ifb
   static Future<void> logout() async {
     await storage.deleteAll();
     AppState().rescuerSession.value = null;
+    AppState().role.value = UserRole.user;
     print("🗑️ Session cleared");
   }
 }
