@@ -3,6 +3,7 @@ import '../database/db_hook.dart';
 import '../central/intialize.dart';
 import '../mesh/ble_collisions.dart';
 import 'decision_relay_logic.dart';
+import '../online/sync.dart';
 import 'packet_codec.dart';
 import '../core/constants.dart';
 
@@ -24,6 +25,10 @@ void stopRelayLoop() {
 Future<void> _relayTick() async {
   if (_relayRunning) return;
   _relayRunning = true;
+
+  // Try syncing to the backend on every tick
+  print("⏱️ [RelayLoop] Triggering syncMessages() to send POST requests if needed...");
+  syncMessages();
 
   try {
     final messages = await getNonExpiredMessages();
@@ -76,4 +81,3 @@ Future<bool> _hasAcknowledged(String messageId, String deviceId) async {
   final devices = await getDevicesForMessage(messageId);
   return devices.any((d) => d['deviceId'] == deviceId);
 }
-

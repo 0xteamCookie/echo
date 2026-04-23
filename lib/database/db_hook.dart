@@ -128,7 +128,7 @@ Future<List<Map<String, dynamic>>> getUnsyncedMessages() async {
     where: 'isSynced = ?',
     whereArgs: [0],
     limit: batchSize,
-    orderBy: 'isSos DESC, time ASC',
+    orderBy: 'isSos DESC',
   );
 }
 

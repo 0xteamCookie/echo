@@ -13,6 +13,7 @@ import 'models/rescuer_session.dart';
 import 'auth/auth_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'online/sync.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'send/send_heartbeat.dart';
 import 'services/activity_monitor.dart';
 import 'services/mesh_foreground_service.dart';
@@ -57,6 +58,7 @@ class BeaconColors {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

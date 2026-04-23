@@ -40,11 +40,20 @@ Map<String, dynamic> parseLocation(dynamic location) {
 }
 
 Map<String, dynamic> mapToApiPayload(Map<String, dynamic> msg) {
+  String? timeStr = msg["time"];
+  if (timeStr == null && msg["expiresAt"] != null) {
+    try {
+      final exp = DateTime.parse(msg["expiresAt"]);
+      timeStr = exp.subtract(const Duration(days: 1)).toIso8601String();
+    } catch (_) {}
+  }
+  timeStr ??= DateTime.now().toIso8601String();
+
   return {
     "macAddress": msg["deviceId"],
     "messageId": msg["messageId"],
     "message": msg["message"],
-    "time": msg["time"],
+    "time": timeStr,
     "gps": msg["location"] != null
         ? parseLocation(msg["location"])
         : null,
@@ -56,7 +65,6 @@ Map<String, dynamic> mapToApiPayload(Map<String, dynamic> msg) {
     }
   };
 }
-
 Uri _ingestUri() => Uri.parse('$_apiBaseUrl/api/data');
 
 Map<String, String> _ingestHeaders() {
@@ -72,44 +80,50 @@ Map<String, String> _ingestHeaders() {
 Future<void> sendBatch(List<Map<String, dynamic>> messages) async {
   for (var msg in messages) {
     try {
+      print("Sending POST request to: ${_ingestUri()}");
+      print("Payload: ${jsonEncode(mapToApiPayload(msg))}");
       final response = await http.post(
         _ingestUri(),
         headers: _ingestHeaders(),
         body: jsonEncode(mapToApiPayload(msg)),
-      );
+      ).timeout(const Duration(seconds: 10));
 
+      print("Response status code: ${response.statusCode}");
       if (response.statusCode == 200 || response.statusCode == 201) {
         await markAsSynced(msg["messageId"]);
+        print("✅ Message successfully marked as synced in local DB!");
       } else {
-        print('Sync failed: ${response.statusCode} ${response.body}');
+        print("❌ Failed: ${response.statusCode} - ${response.body}");
         // Bail out of the batch on 4xx/5xx so we don't tight-loop.
         break;
       }
     } catch (e) {
-      print("Network error: $e");
+      print("❌ Network/Timeout error: $e");
       break;
     }
   }
 }
 
 Future<void> syncMessages() async {
+  print("🔄 [Sync] syncMessages() called.");
   if (!await hasInternet()) {
-    print("No internet, skipping sync");
+    print("🔄 [Sync] No internet, skipping sync.");
     return;
   }
 
-  print("Internet detected, syncing...");
+  print("🔄 [Sync] Internet detected, checking for unsynced messages...");
 
   while (true) {
     final batch = await getUnsyncedMessages();
 
     if (batch.isEmpty) {
-      print("All messages synced ✅");
+      print("🔄 [Sync] All messages synced ✅");
       break;
     }
 
+    print("🔄 [Sync] Found ${batch.length} unsynced messages, sending via POST...");
     await sendBatch(batch);
 
-    await Future.delayed(Duration(seconds: 2)); // prevent spamming server
+    await Future.delayed(Duration(seconds: 2)); 
   }
 }

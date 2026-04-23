@@ -2,7 +2,7 @@ name: beacon
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -55,6 +55,7 @@ dependencies:
   dart_jsonwebtoken: ^3.4.0
   flutter_secure_storage: ^10.0.0
   connectivity_plus: ^6.0.0
+  flutter_dotenv: ^5.1.0
   # P0-3: keeps BLE scan/advertise + relay loop alive when the app is backgrounded.
   flutter_foreground_task: ^8.17.0
   # P2-11: pure-Dart ed25519 signing for mesh packets. `cryptography` ships
@@ -70,7 +71,6 @@ dependencies:
   # services/activity_monitor.dart. Pure sensor data — no activity-recognition
   # SDK dependency so we stay off Google Play Services.
   sensors_plus: ^6.0.0
-  
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -92,6 +92,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:
