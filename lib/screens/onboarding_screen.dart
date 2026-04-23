@@ -299,6 +299,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         _FeatureSpec(icon: Icons.map_rounded, title: 'SOS Heatmap', text: 'Locate distress beacons securely over the mesh network.'),
         _FeatureSpec(icon: Icons.home_rounded, title: 'Home', text: 'View important announcements from nearby responders and authorities.'),
         _FeatureSpec(icon: Icons.chat_bubble_rounded, title: 'Coordination', text: 'Chat with other responders and civilians in the local mesh.'),
+        _FeatureSpec(icon: Icons.assessment_rounded, title: 'Reports', text: 'View incident logs and real-time mesh activity.'),
       ],
     );
   }
