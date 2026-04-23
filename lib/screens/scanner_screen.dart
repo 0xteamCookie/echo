@@ -45,7 +45,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               const SnackBar(content: Text('Login Successful! ✅ Switched to Rescuer Dashboard')),
             );
             // Go back to the main dashboard
-            Navigator.of(context).pop();
+            Navigator.of(context).pop(true);
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
