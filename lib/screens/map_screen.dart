@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
+// import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import '../database/db_hook.dart';
@@ -13,9 +13,9 @@ import '../map/offline_map_manager.dart';
 /// Mesh map screen. Shows the user's location plus every message pin received
 /// via BLE mesh.
 ///
-/// P2-2: online = `google_maps_flutter` with native Google tiles; offline =
-/// original `flutter_map` + cached OSM tiles so the screen still works when
-/// there is no connectivity.
+/// Uses `flutter_map` + OpenStreetMap tiles for both online and offline. When
+/// online, missing cached tiles fall through to OSM's tile server; when
+/// offline, only downloaded tiles render.
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -32,7 +32,7 @@ class _MapScreenState extends State<MapScreen> {
   LatLng _center = const LatLng(0, 0);
 
   final MapController _mapController = MapController();
-  gmaps.GoogleMapController? _googleController;
+  // gmaps.GoogleMapController? _googleController; // Google Maps disabled.
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
   @override
@@ -44,7 +44,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _connectivitySub?.cancel();
-    _googleController?.dispose();
+    // _googleController?.dispose(); // Google Maps disabled.
     super.dispose();
   }
 
@@ -129,16 +129,8 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _recenter() {
-    if (_isOnline && _googleController != null) {
-      _googleController!.animateCamera(
-        gmaps.CameraUpdate.newLatLngZoom(
-          gmaps.LatLng(_center.latitude, _center.longitude),
-          14.0,
-        ),
-      );
-    } else {
-      _mapController.move(_center, 14.0);
-    }
+    // Google Maps branch removed — always use flutter_map controller.
+    _mapController.move(_center, 14.0);
   }
 
   @override
@@ -180,11 +172,12 @@ class _MapScreenState extends State<MapScreen> {
                 ],
               ),
             )
-          : (_isOnline ? _buildOnlineMap() : _buildOfflineMap()),
+          : (_isOnline ? _buildOsmMap() : _buildOsmMap()),
     );
   }
 
-  // ── Online: Google Maps ─────────────────────────────────────────────────
+  // ── Online: Google Maps (DISABLED — reverted to flutter_map+OSM) ────────
+  /*
   Widget _buildOnlineMap() {
     final markers = <gmaps.Marker>{
       gmaps.Marker(
@@ -215,9 +208,10 @@ class _MapScreenState extends State<MapScreen> {
       onMapCreated: (c) => _googleController = c,
     );
   }
+  */
 
-  // ── Offline: flutter_map ────────────────────────────────────────────────
-  Widget _buildOfflineMap() {
+  // ── flutter_map + OSM (used for both online and offline) ────────────────
+  Widget _buildOsmMap() {
     final markers = <Marker>[
       Marker(
         point: _center,
