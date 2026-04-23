@@ -44,6 +44,11 @@ dependencies:
   uuid: ^4.5.3
   flutter_map: ^6.1.0
   latlong2: ^0.9.0
+  # P2-2: Google Maps Platform. Used when device is online; we fall back to
+  # flutter_map+OSM when connectivity_plus reports offline so cached tiles
+  # still work. API key must be provided via AndroidManifest meta-data
+  # (MAPS_API_KEY gradle property) and iOS Info.plist (GMSApiKey).
+  google_maps_flutter: ^2.9.0
   path_provider: ^2.1.2
   http: ^1.2.0
   mobile_scanner: 7.2.0
@@ -51,7 +56,21 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   connectivity_plus: ^6.0.0
   flutter_dotenv: ^5.1.0
-
+  # P0-3: keeps BLE scan/advertise + relay loop alive when the app is backgrounded.
+  flutter_foreground_task: ^8.17.0
+  # P2-11: pure-Dart ed25519 signing for mesh packets. `cryptography` ships
+  # a pure-Dart Ed25519 implementation so we stay off native deps (works on
+  # every platform Flutter targets). `pointycastle` 4.x drops Ed25519 support,
+  # so the `cryptography` package is the pragmatic choice as of Nov 2025.
+  cryptography: ^2.7.0
+  # P2-14: voice-to-text for the SOS screen mic button. Plugin wraps the
+  # platform speech engine (Android SpeechRecognizer / iOS SFSpeechRecognizer)
+  # and gracefully no-ops if the engine is missing or mic permission denied.
+  speech_to_text: ^7.0.0
+  # P2-15: raw accelerometer stream for the fall-detector in
+  # services/activity_monitor.dart. Pure sensor data — no activity-recognition
+  # SDK dependency so we stay off Google Play Services.
+  sensors_plus: ^6.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -2,16 +2,21 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../mesh/ble-collisions.dart';
+import '../mesh/ble_collisions.dart';
+import '../core/constants.dart';
 
 // ─── UUIDs
-final Guid targetServiceUuid = Guid("12345678-1234-5678-1234-56789abcdef0");
-final Guid targetCharacteristicUuid = Guid("12345678-1234-5678-1234-56789abcdefF");
+final Guid targetServiceUuid = Guid(kServiceUuid);
+final Guid targetCharacteristicUuid = Guid(kCharacteristicUuid);
 final String _targetServiceUuidLower = targetServiceUuid.toString().toLowerCase();
 final String _targetCharUuidLower = targetCharacteristicUuid.toString().toLowerCase();
 
 // ─── Callbacks & State 
 final Map<String, Map<String, dynamic>> _seenDevices = {};
+
+// P3-5: prune devices not seen in the last kSeenDeviceTtl so the relay list stays fresh.
+const Duration _seenDeviceTtl = kSeenDeviceTtl;
+Timer? _seenDeviceSweepTimer;
 
 StreamSubscription? _scanSubscription;
 bool _isScanning = false;
@@ -57,6 +62,12 @@ Future<void> startAutoScanner() async {
         }
       });
     }
+
+    // P3-5: start a periodic sweep that drops stale entries from _seenDevices.
+    _seenDeviceSweepTimer ??= Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _pruneSeenDevices(),
+    );
   } catch (e) {
     print("❌ startAutoScanner error: $e");
   }
@@ -87,7 +98,13 @@ Future<void> _startScan() async {
   _scanSubscription = FlutterBluePlus.onScanResults.listen(_onScanResult);
 
   try {
-    await FlutterBluePlus.startScan(timeout: const Duration(seconds: 30));
+    // iOS (CoreBluetooth) silently drops scan results in the background unless
+    // a service UUID filter is provided. Always pass withServices so background
+    // scanning works on both Android and iOS.
+    await FlutterBluePlus.startScan(
+      withServices: [targetServiceUuid],
+      timeout: const Duration(seconds: 30),
+    );
   } catch (e) {
     print("❌ [_startScan] Failed to start scan: $e");
     _isScanning = false;
@@ -133,6 +150,7 @@ void _onScanResult(List<ScanResult> results) {
         'rssi': r.rssi,
         'serviceUuids': advertisedUuids.map((u) => u.toString()).toList(),
         'connected': false,
+        'lastSeen': DateTime.now().millisecondsSinceEpoch,
       };
     }
   }
@@ -155,6 +173,27 @@ List<Map<String, dynamic>> getCurrentScanResults() {
   return _seenDevices.values.toList();
 }
 
+/// P3-5: drop entries not refreshed within [_seenDeviceTtl]. Called on a
+/// 1-minute timer so the relay loop never tries to dispatch to a node we
+/// haven't heard from in 5+ minutes.
+void _pruneSeenDevices() {
+  if (_seenDevices.isEmpty) return;
+  final cutoff =
+      DateTime.now().subtract(_seenDeviceTtl).millisecondsSinceEpoch;
+  final stale = <String>[];
+  _seenDevices.forEach((id, dev) {
+    final ls = dev['lastSeen'];
+    final lastSeenMs = (ls is int) ? ls : int.tryParse((ls ?? '0').toString()) ?? 0;
+    if (lastSeenMs < cutoff) stale.add(id);
+  });
+  if (stale.isEmpty) return;
+  for (final id in stale) {
+    _seenDevices.remove(id);
+  }
+  _scanResultDirty = true;
+  _flushScanResults();
+}
+
 Future<bool> dispatchPayloadToDevice(
   String deviceId,
   List<int> payloadBytes,
@@ -164,11 +203,10 @@ Future<bool> dispatchPayloadToDevice(
   try {
     print("🔌 [dispatchPayload] Dialing MAC: $deviceId...");
 
-    // Clear caches and bonds to prevent OS-level Pairing prompts on Android
+    // Clear GATT cache only. `removeBond` was removed because it destroys
+    // the user's pairings with unrelated Bluetooth devices (headphones,
+    // car) every time we relay, which is a data-loss-class bug.
     if (Platform.isAndroid) {
-      try {
-        await device.removeBond();
-      } catch (_) {}
       try {
         await device.clearGattCache();
       } catch (_) {}

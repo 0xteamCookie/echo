@@ -3,6 +3,22 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../database/db_hook.dart';
 
+/// Backend ingest base URL — injected at build time via
+/// `--dart-define-from-file=dart-defines.json` (see .vscode/launch.json).
+/// The default points to the live backend so `flutter run` without flags
+/// also works during development.
+const String _apiBaseUrl = String.fromEnvironment(
+  'BEACON_API_BASE_URL',
+  defaultValue: 'https://echo-back.getmyroom.in',
+);
+
+/// Shared-secret token for the ingest endpoint. Replaced by Firebase App Check
+/// + Firebase Auth ID token in P2-3 / P2-4.
+const String _ingestToken = String.fromEnvironment(
+  'BEACON_INGEST_TOKEN',
+  defaultValue: '',
+);
+
 Future<bool> hasInternet() async {
   var result = await Connectivity().checkConnectivity();
   return !result.contains(ConnectivityResult.none);
@@ -35,6 +51,7 @@ Map<String, dynamic> mapToApiPayload(Map<String, dynamic> msg) {
 
   return {
     "macAddress": msg["deviceId"],
+    "messageId": msg["messageId"],
     "message": msg["message"],
     "time": timeStr,
     "gps": msg["location"] != null
@@ -43,22 +60,31 @@ Map<String, dynamic> mapToApiPayload(Map<String, dynamic> msg) {
     "meta": {
       "senderName": msg["senderName"],
       "isSos": msg["isSos"],
+      "hopCount": msg["hopCount"] ?? 0,
+      "messageId": msg["messageId"],
     }
   };
 }
-  
-// Needs relevant BASE_API_KEY
+Uri _ingestUri() => Uri.parse('$_apiBaseUrl/api/data');
+
+Map<String, String> _ingestHeaders() {
+  final headers = <String, String>{
+    'Content-Type': 'application/json',
+  };
+  if (_ingestToken.isNotEmpty) {
+    headers['Authorization'] = 'Bearer $_ingestToken';
+  }
+  return headers;
+}
+
 Future<void> sendBatch(List<Map<String, dynamic>> messages) async {
   for (var msg in messages) {
     try {
-      final url = "$BASE_API_KEY/api/data";
-      print("Sending POST request to: $url");
+      print("Sending POST request to: ${_ingestUri()}");
       print("Payload: ${jsonEncode(mapToApiPayload(msg))}");
       final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          "Content-Type": "application/json",
-        },
+        _ingestUri(),
+        headers: _ingestHeaders(),
         body: jsonEncode(mapToApiPayload(msg)),
       ).timeout(const Duration(seconds: 10));
 
@@ -68,6 +94,8 @@ Future<void> sendBatch(List<Map<String, dynamic>> messages) async {
         print("✅ Message successfully marked as synced in local DB!");
       } else {
         print("❌ Failed: ${response.statusCode} - ${response.body}");
+        // Bail out of the batch on 4xx/5xx so we don't tight-loop.
+        break;
       }
     } catch (e) {
       print("❌ Network/Timeout error: $e");

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 import '../models/rescuer_session.dart';
+import '../services/activity_monitor.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -39,7 +40,11 @@ class HomeScreen extends StatelessWidget {
         const SizedBox(height: 20),
 
         _StatusCard(),
-        const SizedBox(height: 32),
+        const SizedBox(height: 16),
+
+        // P2-15: opt-in auto-SOS toggle.
+        const _AutoSosTile(),
+        const SizedBox(height: 16),
 
         const Text(
           'Announcements',
@@ -140,8 +145,7 @@ class _SimpleAnnouncement extends StatelessWidget {
   }
 }
 
-class _OfflineBadge extends StatelessWidget {
-  @override
+class _OfflineBadge extends StatelessWidget {  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -443,6 +447,107 @@ class _RoleAssignmentCard extends StatelessWidget {
                 letterSpacing: 0.8,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Auto-SOS opt-in tile (P2-15) ──────────────────────────────────────────
+class _AutoSosTile extends StatefulWidget {
+  const _AutoSosTile();
+
+  @override
+  State<_AutoSosTile> createState() => _AutoSosTileState();
+}
+
+class _AutoSosTileState extends State<_AutoSosTile> {
+  bool? _enabled;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final enabled = await ActivityMonitor.isEnabled();
+    if (!mounted) return;
+    setState(() => _enabled = enabled);
+  }
+
+  Future<void> _toggle(bool v) async {
+    setState(() => _enabled = v);
+    await ActivityMonitor.setEnabled(v);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          v
+              ? 'Auto-SOS enabled — fall detection is active.'
+              : 'Auto-SOS disabled.',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = _enabled ?? false;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: BeaconColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: BeaconColors.cardBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: BeaconColors.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.accessibility_new_rounded,
+              color: BeaconColors.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Auto-SOS (fall detection)',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: BeaconColors.textDark,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  '30 s countdown after a suspected fall, then auto-broadcast.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: BeaconColors.textMid,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: enabled,
+            activeColor: BeaconColors.primary,
+            onChanged: _enabled == null ? null : _toggle,
           ),
         ],
       ),

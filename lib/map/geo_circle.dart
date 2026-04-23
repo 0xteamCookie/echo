@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:latlong2/latlong.dart';
+import '../core/constants.dart';
 
 /// Builds a list of [LatLng] points forming a circle polygon on the globe.
 ///
@@ -10,7 +11,7 @@ import 'package:latlong2/latlong.dart';
 /// [radiusM] – radius in **metres**.
 /// [points]  – number of polygon vertices (higher = smoother, 72 is fine).
 List<LatLng> buildGeoCircle(LatLng center, double radiusM, {int points = 72}) {
-  const double earthRadius = 6371000; // metres
+  const double earthRadius = kEarthRadiusMetres;
   final double lat1 = center.latitude * pi / 180;
   final double lng1 = center.longitude * pi / 180;
   final double angularDist = radiusM / earthRadius;

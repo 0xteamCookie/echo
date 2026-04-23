@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'database/db_hook.dart';
 import 'peripheral/initialize.dart';
 import 'central/intialize.dart';
-import 'recieve/recieve-message.dart';
-import 'packet/get-deviceID.dart';
+import 'crypto/ed25519.dart' as ed25519;
+import 'receive/receive_message.dart';
 import 'layout/main_layout.dart';
 import 'mesh/relay_loop.dart';
 import 'models/rescuer_session.dart';
 import 'auth/auth_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'online/sync.dart'; 
+import 'online/sync.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'send/send_heartbeat.dart';
+import 'services/activity_monitor.dart';
+import 'services/mesh_foreground_service.dart';
 
 enum UserRole {
   user,
@@ -31,6 +35,11 @@ class AppState {
   final ValueNotifier<List<Map<String, dynamic>>> chatMessages = ValueNotifier([]);
   final ValueNotifier<List<Map<String, dynamic>>> heartbeats = ValueNotifier([]);
 }
+
+/// Root navigator key — used by background services (ActivityMonitor) that
+/// need to surface modal UI (fall-detected countdown) without holding a
+/// BuildContext of their own.
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 // ─── Warm Colour Palette ────────────────────────────────────────────────────
 class BeaconColors {
@@ -71,6 +80,16 @@ void _initializeApp() async {
   // Restore any saved rescuer session from secure storage
   await AuthService.isLoggedIn();
 
+  // P2-11: ensure the device's long-lived Ed25519 identity exists so every
+  // outgoing packet can be signed. Failure here is non-fatal — sending just
+  // falls back to unsigned v2 frames (covered by the getPublicKeyB64 → ''
+  // short-circuit in send_message.dart).
+  try {
+    await ed25519.ensureKeypair();
+  } catch (e) {
+    debugPrint('ed25519 keypair init failed: $e');
+  }
+
   // Sync messages to internet
   syncMessages();
 
@@ -92,14 +111,14 @@ void _initializeApp() async {
 
     if (decoded['isNew'] == false) return;
 
-    final isHeartbeat =
-        (decoded['message'].toString().contains('Heartbeat')) ||
-        msg.toString().contains('Heartbeat');
+    // Route on the authoritative isSos flag from the decoded packet; never on
+    // substring matches against the (untrusted) human message body (P0-4).
+    final isSos = decoded['isSos'] == 1;
 
     final payload = decoded;
     payload['relayerMac'] = senderHardwareMac;
 
-    if (isHeartbeat) {
+    if (isSos) {
       final list = List<Map<String, dynamic>>.from(AppState().heartbeats.value);
       list.insert(0, payload);
       if (list.length > 50) list.removeLast();
@@ -112,7 +131,6 @@ void _initializeApp() async {
   };
 
   final savedMessages = await getMessages();
-  AppState().chatMessages.value = savedMessages.reversed.toList();
   final chatHistory = savedMessages.where((m) => m['isSos'] != 1).toList();
   final sosHistory = savedMessages.where((m) => m['isSos'] == 1).toList();
   AppState().chatMessages.value = chatHistory.reversed.toList();
@@ -128,6 +146,116 @@ void _initializeApp() async {
   await setupBlePeripheral();
   startAutoScanner();
   startRelayLoop();
+
+  // P0-3: keep the mesh alive when the user leaves the app.
+  // Best-effort: any failure here (e.g. iOS, or permission denied) is logged
+  // and swallowed so the foreground UI still works.
+  try {
+    await MeshForegroundService.initAndStart();
+  } catch (e) {
+    debugPrint('Foreground service start failed: $e');
+  }
+
+  // P2-15: wire the fall-detector SOS trigger and (if the user opted in)
+  // start the accelerometer listener. The actual 30 s countdown UI is owned
+  // by the home screen — see `home_screen.dart`.
+  ActivityMonitor.instance.installHooks(
+    sosTrigger: (msg) async {
+      await sendSosHeartbeat(department: 'Rescue', additionalMessage: msg);
+    },
+    warningHandler: ({required countdown, required onCancel, required onConfirm}) {
+      _showFallWarningDialog(countdown, onCancel, onConfirm);
+    },
+  );
+  try {
+    await ActivityMonitor.instance.start();
+  } catch (e) {
+    debugPrint('ActivityMonitor start failed: $e');
+  }
+}
+
+void _showFallWarningDialog(
+  Duration countdown,
+  VoidCallback onCancel,
+  VoidCallback onConfirm,
+) {
+  final navCtx = rootNavigatorKey.currentContext;
+  if (navCtx == null) return;
+  showDialog<void>(
+    context: navCtx,
+    barrierDismissible: false,
+    builder: (ctx) => _FallWarningDialog(
+      duration: countdown,
+      onCancel: () {
+        onCancel();
+        Navigator.of(ctx).pop();
+      },
+      onSendNow: () {
+        onConfirm();
+        Navigator.of(ctx).pop();
+      },
+    ),
+  );
+}
+
+class _FallWarningDialog extends StatefulWidget {
+  final Duration duration;
+  final VoidCallback onCancel;
+  final VoidCallback onSendNow;
+
+  const _FallWarningDialog({
+    required this.duration,
+    required this.onCancel,
+    required this.onSendNow,
+  });
+
+  @override
+  State<_FallWarningDialog> createState() => _FallWarningDialogState();
+}
+
+class _FallWarningDialogState extends State<_FallWarningDialog> {
+  late int _secondsLeft;
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _secondsLeft = widget.duration.inSeconds;
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {
+        _secondsLeft = (_secondsLeft - 1).clamp(0, 999);
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      icon: const Icon(Icons.warning_rounded, color: Color(0xFFD96B45), size: 40),
+      title: const Text('Possible fall detected'),
+      content: Text(
+        'Auto-SOS will broadcast in $_secondsLeft s unless you cancel.',
+        textAlign: TextAlign.center,
+      ),
+      actions: [
+        TextButton(
+          onPressed: widget.onCancel,
+          child: const Text("I'm OK"),
+        ),
+        ElevatedButton(
+          onPressed: widget.onSendNow,
+          child: const Text('Send now'),
+        ),
+      ],
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -138,6 +266,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Beacon',
       debugShowCheckedModeBanner: false,
+      navigatorKey: rootNavigatorKey,
       theme: ThemeData(
         brightness: Brightness.light,
         scaffoldBackgroundColor: BeaconColors.background,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import '../central/intialize.dart';
 import '../database/db_hook.dart';
+import 'packet_codec.dart';
 
 /// Evaluates whether a message should be relayed to specific nearby devices.
 /// Returns a list of device IDs that need this message.
@@ -33,23 +34,42 @@ Future<List<String>> evaluateRelayDecision({
 
   return devicesThatNeedMessage;
 }
-/// This function handles the actual transmission and does NOT evaluate which devices need the message.
+
+/// Relays a stored message to the given target devices. Increments `hopCount`
+/// and refuses to transmit if the TTL has been exhausted (P1-2). The outgoing
+/// frame is always encoded as v2 (base64 text fields, P1-1).
 Future<void> relayMessage(
-  String messageId,
-  String message,
-  String deviceId,
-  String senderName,
-  String expiresAt,
-  String location,
-  int isSos,
+  Map<String, dynamic> packet,
   List<String> targetDeviceIds,
 ) async {
   try {
-    // messageId||message||deviceId||senderName||expiresAt||location
-    String compactPayload = "$messageId||$message||$deviceId||$senderName||$expiresAt||$location||$isSos";
+    final messageId = (packet['messageId'] ?? '').toString();
+    final currentHops = (packet['hopCount'] is int)
+        ? packet['hopCount'] as int
+        : int.tryParse((packet['hopCount'] ?? '0').toString()) ?? 0;
 
-    List<int> bytes = utf8.encode(compactPayload);
-    print("📡 [relayMessage] Transmitting messageId: $messageId for relay.");
+    if (currentHops >= maxHops) {
+      print('⏹️ [relayMessage] Dropping $messageId — TTL exhausted ($currentHops/$maxHops hops).');
+      return;
+    }
+
+    // Transmit with an incremented hop count so receivers see the new value.
+    final outgoing = Map<String, dynamic>.from(packet);
+    outgoing['hopCount'] = currentHops + 1;
+
+    // P2-11: prefer v3 if the packet carried a signature + public key
+    // (relays MUST NOT resign — that would break authenticity). Fall back to
+    // v2 for legacy packets that pre-date signing so they keep propagating.
+    final signature = (outgoing['signature'] ?? '').toString();
+    final pubKey = (outgoing['deviceSenderPublicKey'] ?? '').toString();
+    final String compactPayload;
+    if (signature.isNotEmpty && pubKey.isNotEmpty) {
+      compactPayload = encodePacketV3(outgoing, signature);
+    } else {
+      compactPayload = encodePacketV2(outgoing);
+    }
+    final bytes = utf8.encode(compactPayload);
+    print("📡 [relayMessage] Transmitting messageId: $messageId (hop ${currentHops + 1}/$maxHops).");
     print("📦 [relayMessage] Encoded Packet byte size: ${bytes.length} bytes.");
 
     if (targetDeviceIds.isEmpty) {

@@ -1,0 +1,5 @@
+{
+  "BEACON_API_BASE_URL": "https://echo-back.getmyroom.in",
+  "BEACON_INGEST_TOKEN": "<your-admin-api-key>",
+  "MAPS_API_KEY": "<your-google-maps-api-key>"
+}
