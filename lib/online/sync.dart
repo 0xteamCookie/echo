@@ -46,12 +46,12 @@ Map<String, dynamic> mapToApiPayload(Map<String, dynamic> msg) {
     }
   };
 }
-
+  
 // Needs relevant BASE_API_KEY
 Future<void> sendBatch(List<Map<String, dynamic>> messages) async {
   for (var msg in messages) {
     try {
-      final url = "http://178.104.27.227:6767/api/data";
+      final url = "$BASE_API_KEY/api/data";
       print("Sending POST request to: $url");
       print("Payload: ${jsonEncode(mapToApiPayload(msg))}");
       final response = await http.post(
