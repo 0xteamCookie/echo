@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../main.dart';
 import '../send/send_heartbeat.dart';
 
@@ -319,8 +318,8 @@ class _BroadcastPanel extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                // Message field with P2-14 voice-to-text mic button.
-                _VoiceEnabledField(controller: msgController),
+                // Message field.
+                _MessageField(controller: msgController),
 
                 const SizedBox(height: 12),
 
@@ -547,82 +546,10 @@ class _MapPainter extends CustomPainter {
       o.ripple3      != ripple3 ||
       o.sosSent      != sosSent;
 }
-// ─── Voice-enabled message field (P2-14) ────────────────────────────────────
-class _VoiceEnabledField extends StatefulWidget {
+// ─── Message field ────────────────────────────────────────────────────────
+class _MessageField extends StatelessWidget {
   final TextEditingController controller;
-  const _VoiceEnabledField({required this.controller});
-
-  @override
-  State<_VoiceEnabledField> createState() => _VoiceEnabledFieldState();
-}
-
-class _VoiceEnabledFieldState extends State<_VoiceEnabledField> {
-  final stt.SpeechToText _speech = stt.SpeechToText();
-  bool _sttReady = false;
-  bool _sttUnavailable = false;
-  bool _listening = false;
-  String _preListenBuffer = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _initSpeech();
-  }
-
-  Future<void> _initSpeech() async {
-    try {
-      final ok = await _speech.initialize(
-        onStatus: (status) {
-          if (status == 'notListening' || status == 'done') {
-            if (mounted) setState(() => _listening = false);
-          }
-        },
-        onError: (_) {
-          if (mounted) setState(() => _listening = false);
-        },
-      );
-      if (!mounted) return;
-      setState(() {
-        _sttReady = ok;
-        _sttUnavailable = !ok;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _sttUnavailable = true);
-    }
-  }
-
-  Future<void> _startListening() async {
-    if (!_sttReady) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Voice input unavailable')),
-      );
-      return;
-    }
-    _preListenBuffer = widget.controller.text;
-    setState(() => _listening = true);
-    await _speech.listen(
-      onResult: (result) {
-        final words = result.recognizedWords;
-        final combined = _preListenBuffer.isEmpty
-            ? words
-            : '$_preListenBuffer $words';
-        widget.controller.text = combined;
-        widget.controller.selection = TextSelection.fromPosition(
-          TextPosition(offset: widget.controller.text.length),
-        );
-      },
-      listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 3),
-      localeId: 'en_US',
-    );
-  }
-
-  Future<void> _stopListening() async {
-    await _speech.stop();
-    if (mounted) setState(() => _listening = false);
-  }
+  const _MessageField({required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -632,67 +559,20 @@ class _VoiceEnabledFieldState extends State<_VoiceEnabledField> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: BeaconColors.cardBorder),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: TextField(
-              controller: widget.controller,
-              maxLines: 2,
-              style: const TextStyle(
-                fontSize: 14,
-                color: BeaconColors.textDark,
-                fontFamily: 'Inter',
-              ),
-              decoration: const InputDecoration(
-                hintText: 'Additional details (optional)...',
-                hintStyle: TextStyle(color: BeaconColors.textLight),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.all(14),
-              ),
-            ),
-          ),
-          // Tap-and-hold mic. Silently disabled if STT init failed — the
-          // text field still works, which is the required graceful fallback.
-          Padding(
-            padding: const EdgeInsets.only(right: 6, top: 6),
-            child: GestureDetector(
-              onLongPressStart: _sttUnavailable
-                  ? null
-                  : (_) => _startListening(),
-              onLongPressEnd: _sttUnavailable ? null : (_) => _stopListening(),
-              onTap: _sttUnavailable
-                  ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Voice input unavailable')),
-                      );
-                    }
-                  : null,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: _listening
-                      ? BeaconColors.primary
-                      : _sttUnavailable
-                          ? BeaconColors.cardBorder
-                          : BeaconColors.primary.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  _listening ? Icons.mic : Icons.mic_none_rounded,
-                  size: 20,
-                  color: _listening
-                      ? Colors.white
-                      : _sttUnavailable
-                          ? BeaconColors.textLight
-                          : BeaconColors.primary,
-                ),
-              ),
-            ),
-          ),
-        ],
+      child: TextField(
+        controller: controller,
+        maxLines: 2,
+        style: const TextStyle(
+          fontSize: 14,
+          color: BeaconColors.textDark,
+          fontFamily: 'Inter',
+        ),
+        decoration: const InputDecoration(
+          hintText: 'Additional details (optional)...',
+          hintStyle: TextStyle(color: BeaconColors.textLight),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.all(14),
+        ),
       ),
     );
   }
