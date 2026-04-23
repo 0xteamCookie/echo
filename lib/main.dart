@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'central/intialize.dart';
 import 'crypto/ed25519.dart' as ed25519;
 import 'receive/receive_message.dart';
 import 'layout/main_layout.dart';
+import 'screens/onboarding_screen.dart';
 import 'mesh/relay_loop.dart';
 import 'models/rescuer_session.dart';
 import 'auth/auth_service.dart';
@@ -17,6 +19,7 @@ import 'online/rescuer_sync.dart';
 import 'send/send_heartbeat.dart';
 import 'services/activity_monitor.dart';
 import 'services/mesh_foreground_service.dart';
+import 'core/constants.dart';
 
 enum UserRole {
   user,
@@ -68,7 +71,10 @@ void main() async {
     ),
   );
 
-  runApp(const MyApp());
+  final prefs = await SharedPreferences.getInstance();
+  final bool showOnboarding = !(prefs.getBool(kPrefHasCompletedOnboarding) ?? false);
+
+  runApp(MyApp(showOnboarding: showOnboarding));
 
   SchedulerBinding.instance.addPostFrameCallback((_) {
     _initializeApp();
@@ -271,7 +277,8 @@ class _FallWarningDialogState extends State<_FallWarningDialog> {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool showOnboarding;
+  const MyApp({super.key, this.showOnboarding = false});
 
   @override
   Widget build(BuildContext context) {
@@ -344,7 +351,7 @@ class MyApp extends StatelessWidget {
           behavior: SnackBarBehavior.floating,
         ),
       ),
-      home: const MainLayout(),
+      home: showOnboarding ? const OnboardingScreen() : const MainLayout(),
     );
   }
 }

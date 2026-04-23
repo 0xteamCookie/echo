@@ -31,6 +31,9 @@ const Duration kSeenDeviceTtl = Duration(minutes: 5);
 /// Persisted stable device identity (UUID generated once on first launch).
 const String kPrefDeviceId = 'ble_mesh_device_id';
 
+/// Whether the user has completed the onboarding flow.
+const String kPrefHasCompletedOnboarding = 'has_completed_onboarding';
+
 /// Display name shown in outbound mesh packets.
 const String kPrefUserName = 'user_name';
 
