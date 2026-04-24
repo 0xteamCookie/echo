@@ -254,58 +254,16 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
             onPressed: () =>
                 Navigator.push(context, _warmRoute(const ScannerScreen())),
           ),
-        _AppBarIconButton(
-          icon: Icons.list_alt_rounded,
-          tooltip: 'Message Log',
-          onPressed: () =>
-              Navigator.push(context, _warmRoute(const AckDbScreen())),
-        ),
-        _AppBarIconButton(
-          icon: Icons.delete_sweep_rounded,
-          tooltip: 'Nuke DB',
-          onPressed: () async {
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Nuke local database?'),
-                content: const Text(
-                  'This deletes all local mesh data. Continue?',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    style: TextButton.styleFrom(foregroundColor: Colors.red),
-                    child: const Text('Nuke'),
-                  ),
-                ],
-              ),
-            );
-            if (confirmed != true) return;
-            await nukeDatabase();
-            AppState().chatMessages.value = [];
-            AppState().heartbeats.value = [];
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Database cleared. Fresh start!')),
-              );
-            }
-          },
-        ),
         GestureDetector(
-          onDoubleTap: () =>
-              Navigator.push(context, _warmRoute(const DevicesScreen())),
+          onDoubleTap: () => _showDebugMenu(context),
           child: Padding(
             padding: const EdgeInsets.only(right: 12.0),
             child: Tooltip(
-              message: 'Devices (double-tap)',
+              message: 'Debug Menu',
               child: Container(
                 width: 36,
                 height: 36,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: BeaconColors.cardBorder,
                   shape: BoxShape.circle,
                 ),
@@ -319,6 +277,87 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
           ),
         ),
       ],
+    );
+  }
+
+  void _showDebugMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: BeaconColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                'Debug Options',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: BeaconColors.textDark,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.sensors_rounded, color: BeaconColors.primary),
+              title: const Text('Nearby Devices (Bluetooth)'),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(context, _warmRoute(const DevicesScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.list_alt_rounded, color: BeaconColors.textMid),
+              title: const Text('Mesh Message Log'),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(context, _warmRoute(const AckDbScreen()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
+              title: const Text('Nuke Databse', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (dialogCtx) => AlertDialog(
+                    title: const Text('Nuke local database?'),
+                    content: const Text(
+                      'This deletes all local mesh data. Continue?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(dialogCtx).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(dialogCtx).pop(true),
+                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        child: const Text('Nuke'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed != true) return;
+                await nukeDatabase();
+                AppState().chatMessages.value = [];
+                AppState().heartbeats.value = [];
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Database cleared. Fresh start!')),
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
     );
   }
 
