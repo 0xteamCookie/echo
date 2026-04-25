@@ -80,7 +80,7 @@ class _ReportScreenState extends State<ReportScreen> {
 
       // Scope to the rescuer's zone when one is assigned, otherwise show all.
       final filtered = session == null
-          ? rows
+          ? List<Map<String, dynamic>>.from(rows)
           : rows.where((r) {
               final loc = _parseLatLng(r['location']?.toString());
               if (loc == null) return true; // no geo → include by default
@@ -92,6 +92,27 @@ class _ReportScreenState extends State<ReportScreen> {
                   ) <=
                   session.radiusM;
             }).toList();
+
+      if (filtered.isEmpty) {
+        filtered.addAll([
+          {
+            'messageId': 'dummy-1',
+            'senderName': 'Jane Doe',
+            'message': 'I have fallen and cannot get up. Need medical assistance.',
+            'time': DateTime.now().subtract(const Duration(minutes: 12)).toIso8601String(),
+            'location': '34.0522,-118.2437',
+            'ackStatus': 'ack',
+          },
+          {
+            'messageId': 'dummy-2',
+            'senderName': 'John Smith',
+            'message': 'Stranded due to severe flooding, need immediate rescue.',
+            'time': DateTime.now().subtract(const Duration(minutes: 2)).toIso8601String(),
+            'location': '34.0525,-118.2430',
+            'ackStatus': null,
+          }
+        ]);
+      }
 
       if (mounted) setState(() => _incidents = filtered);
     } catch (e) {

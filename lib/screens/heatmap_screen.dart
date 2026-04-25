@@ -51,6 +51,9 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   /// ~50 m cell size in degrees latitude (1° lat ≈ 111 km).
   static const double _cellDegLat = kHeatmapCellDegLat;
 
+  Timer? _locationTimer;
+  LatLng? _myLoc;
+
   RescuerSession? get _session => AppState().rescuerSession.value;
 
   LatLng get _center => _session != null
@@ -65,6 +68,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
 
   @override
   void dispose() {
+    _locationTimer?.cancel();
     _refreshTimer?.cancel();
     _connectivitySub?.cancel();
     super.dispose();
@@ -94,6 +98,29 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
       kHeatmapRefreshInterval,
       (_) => _refreshHeatmap(),
     );
+
+    _locationTimer?.cancel();
+    _locationTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _updateMyLoc(),
+    );
+    _updateMyLoc();
+  }
+
+  Future<void> _updateMyLoc() async {
+    try {
+      final locStr = await getCurrentLocationString();
+      if (locStr.contains(',')) {
+        final parts = locStr.split(',');
+        final lat = double.parse(parts[0].trim());
+        final lng = double.parse(parts[1].trim());
+        if (mounted) {
+          setState(() {
+            _myLoc = LatLng(lat, lng);
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _updateConnectivity() async {
@@ -402,6 +429,31 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
                     ),
                   ),
                 ),
+                if (_myLoc != null)
+                  Marker(
+                    point: _myLoc!,
+                    width: 36,
+                    height: 36,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 255, 12, 12),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2.5),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 8,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.my_location,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ],
