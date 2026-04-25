@@ -16,31 +16,26 @@ class _SosScreenState extends State<SosScreen> with TickerProviderStateMixin {
   bool _isSending = false;
   bool _sosSent = false;
 
-  late AnimationController _ripple1;
-  late AnimationController _ripple2;
-  late AnimationController _ripple3;
-  late AnimationController _colorFill;
+  late AnimationController _rippleAnim;
 
   final List<Map<String, dynamic>> _departments = [
-    {'name': 'Rescue',  'icon': Icons.support_rounded,               'color': Color(0xFFD96B45)},
-    {'name': 'Medical', 'icon': Icons.medical_services_rounded,      'color': Color(0xFFE8A87C)},
-    {'name': 'Fire',    'icon': Icons.local_fire_department_rounded,  'color': Color(0xFFE65C5C)},
-    {'name': 'Police',  'icon': Icons.local_police_rounded,           'color': Color(0xFF5C8AE6)},
+    {'name': 'Rescue',  'icon': Icons.support_rounded,               'color': const Color(0xFFD96B45)},
+    {'name': 'Medical', 'icon': Icons.medical_services_rounded,      'color': const Color(0xFFE8A87C)},
+    {'name': 'Fire',    'icon': Icons.local_fire_department_rounded, 'color': const Color(0xFFE65C5C)},
+    {'name': 'Police',  'icon': Icons.local_police_rounded,          'color': const Color(0xFF5C8AE6)},
   ];
 
   @override
   void initState() {
     super.initState();
-    _ripple1   = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
-    _ripple2   = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
-    _ripple3   = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
-    _colorFill = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _rippleAnim = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 2000));
   }
 
-  void _startRipples() {
-    _ripple1.repeat();
-    Future.delayed(const Duration(milliseconds: 800),  () { if (mounted) _ripple2.repeat(); });
-    Future.delayed(const Duration(milliseconds: 1600), () { if (mounted) _ripple3.repeat(); });
+  void _startRipple() {
+    _rippleAnim.forward(from: 0.0).then((_) {
+      if (mounted) _rippleAnim.repeat(); 
+    });
   }
 
   Future<void> _sendSos() async {
@@ -59,8 +54,7 @@ class _SosScreenState extends State<SosScreen> with TickerProviderStateMixin {
           _isSending = false;
           if (success) {
             _sosSent = true;
-            _colorFill.forward();
-            _startRipples();
+            _startRipple();
           }
           _msgController.clear();
         });
@@ -92,60 +86,156 @@ class _SosScreenState extends State<SosScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _ripple1.dispose();
-    _ripple2.dispose();
-    _ripple3.dispose();
-    _colorFill.dispose();
+    _rippleAnim.dispose();
     _msgController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Stack(
-        children: [
-          // ── Full-screen light map background ──────────────────────────
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation:
-                  Listenable.merge([_colorFill, _ripple1, _ripple2, _ripple3]),
-              builder: (_, __) => CustomPaint(
-                painter: _MapPainter(
-                  sosSent:      _sosSent,
-                  fillProgress: _colorFill.value,
-                  ripple1:      _ripple1.value,
-                  ripple2:      _ripple2.value,
-                  ripple3:      _ripple3.value,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F0EB), 
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Emergency',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF2D2A26),
+                        fontFamily: 'Inter',
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF0EB).withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFFD96B45).withOpacity(0.25),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
 
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: _BroadcastPanel(
-              departments:   _departments,
-              selectedDept:  _selectedDept,
-              msgController: _msgController,
-              isSending:     _isSending,
-              sosSent:       _sosSent,
-              onDeptChanged: (d) => setState(() => _selectedDept = d),
-              onSend:        _sendSos,
+            Expanded(
+              child: AnimatedBuilder(
+                animation: _rippleAnim,
+                builder: (_, __) => CustomPaint(
+                  painter: _RadarPainter(
+                    isBroadcasting: _sosSent,
+                    progress: _rippleAnim.value,
+                  ),
+                  child: Container(),
+                ),
+              ),
             ),
-          ),
-        ],
+
+            // ── Bottom Panel ───────────────────────────
+            _BroadcastPanel(
+              departments: _departments,
+              selectedDept: _selectedDept,
+              msgController: _msgController,
+              isSending: _isSending,
+              sosSent: _sosSent,
+              onDeptChanged: (d) => setState(() => _selectedDept = d),
+              onSend: _sendSos,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Bottom broadcast panel  (light themed)
-// ─────────────────────────────────────────────────────────────────────────────
+class _RadarPainter extends CustomPainter {
+  final bool isBroadcasting;
+  final double progress; 
+
+  _RadarPainter({required this.isBroadcasting, required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2; 
+    final center = Offset(cx, cy);
+    final maxRadius = size.width * 0.45;
+
+    final bgPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0xFFD96B45).withOpacity(0.04);
+    
+    canvas.drawCircle(center, maxRadius * 0.4, bgPaint);
+    canvas.drawCircle(center, maxRadius * 0.8, bgPaint);
+
+    if (isBroadcasting) {
+      // Draw 3 staggered expanding ripples
+      _drawRipple(canvas, center, progress, maxRadius);
+      _drawRipple(canvas, center, (progress + 0.33) % 1.0, maxRadius);
+      _drawRipple(canvas, center, (progress + 0.66) % 1.0, maxRadius);
+    }
+
+    // ── The Center Beacon Icon ──
+    final baseColor = isBroadcasting ? const Color(0xFFD96B45) : const Color(0xFFB07A55);
+
+    // Outer soft glow
+    canvas.drawCircle(
+      center, 
+      36, 
+      Paint()..color = baseColor.withOpacity(isBroadcasting ? 0.15 : 0.08)
+    );
+    // Mid ring
+    canvas.drawCircle(
+      center, 
+      24, 
+      Paint()..color = baseColor.withOpacity(isBroadcasting ? 0.3 : 0.2)
+    );
+    // Core dot
+    canvas.drawCircle(
+      center, 
+      12, 
+      Paint()..color = baseColor
+    );
+    // Inner light
+    canvas.drawCircle(
+      center, 
+      4, 
+      Paint()..color = Colors.white
+    );
+  }
+
+  void _drawRipple(Canvas canvas, Offset center, double t, double maxRadius) {
+    final radius = maxRadius * t;
+    final opacity = 1.0 - t; // Fades out as it gets larger
+    
+    final ripplePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0 + (2.0 * (1 - t)) // Slightly thicker near the center
+      ..color = const Color(0xFFD96B45).withOpacity(opacity * 0.6);
+
+    canvas.drawCircle(center, radius, ripplePaint);
+  }
+
+  @override
+  bool shouldRepaint(_RadarPainter oldDelegate) =>
+      oldDelegate.isBroadcasting != isBroadcasting || oldDelegate.progress != progress;
+}
+
 
 class _BroadcastPanel extends StatelessWidget {
   final List<Map<String, dynamic>> departments;
@@ -172,9 +262,7 @@ class _BroadcastPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: BeaconColors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: const Border(
-          top: BorderSide(color: BeaconColors.cardBorder),
-        ),
+        border: const Border(top: BorderSide(color: BeaconColors.cardBorder)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.07),
@@ -186,7 +274,6 @@ class _BroadcastPanel extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
           const SizedBox(height: 10),
           Center(
             child: Container(
@@ -198,136 +285,75 @@ class _BroadcastPanel extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header
                 Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF0EB),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.broadcast_on_personal_rounded,
-                        color: BeaconColors.primary,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Emergency Broadcast',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: BeaconColors.textDark,
-                            fontFamily: 'Inter',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF0EB),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: BeaconColors.primary.withOpacity(0.25),
-                        ),
-                      ),
-                      child: const Text(
-                        'Offline',
-                        style: TextStyle(
-                          color: BeaconColors.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 18),
-
-                // Department pills — horizontal scroll
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: departments.map((dept) {
-                      final isSelected = selectedDept == dept['name'];
-                      final baseColor  = dept['color'] as Color;
-                      return GestureDetector(
+                  children: List.generate(departments.length, (i) {
+                    final dept      = departments[i];
+                    final isSelected = selectedDept == dept['name'];
+                    final baseColor  = dept['color'] as Color;
+                    final isLast     = i == departments.length - 1;
+                    return Expanded(
+                      child: GestureDetector(
                         onTap: () => onDeptChanged(dept['name'] as String),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 9),
+                          margin: EdgeInsets.only(right: isLast ? 0 : 8),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? baseColor
                                 : baseColor.withOpacity(0.09),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: isSelected
                                   ? baseColor
-                                  : baseColor.withOpacity(0.2),
-                              width: 1,
+                                  : baseColor.withOpacity(0.22),
+                              width: isSelected ? 1.5 : 1,
                             ),
                           ),
-                          child: Row(
+                          child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 dept['icon'] as IconData,
                                 color: isSelected ? Colors.white : baseColor,
-                                size: 15,
+                                size: 20,
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(height: 6),
                               Text(
                                 dept['name'] as String,
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 10,
                                   fontWeight: isSelected
                                       ? FontWeight.w700
-                                      : FontWeight.w500,
+                                      : FontWeight.w600,
                                   color: isSelected
                                       ? Colors.white
-                                      : BeaconColors.textMid,
+                                      : baseColor.withOpacity(0.85),
                                   fontFamily: 'Inter',
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      );
-                    }).toList(),
-                  ),
+                      ),
+                    );
+                  }),
                 ),
 
-                const SizedBox(height: 12),
-
-                // Message field.
+                const SizedBox(height: 14),
                 _MessageField(controller: msgController),
-
                 const SizedBox(height: 12),
 
-                // Send button
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  height: 52,
+                  height: 54,
                   decoration: BoxDecoration(
                     color: sosSent
                         ? const Color(0xFFF5EBE6)
@@ -335,7 +361,9 @@ class _BroadcastPanel extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     border: sosSent
                         ? Border.all(
-                            color: const Color(0xFFD96B45).withOpacity(0.35))
+                            color: const Color(0xFFD96B45).withOpacity(0.35),
+                            width: 1.5,
+                          )
                         : null,
                   ),
                   child: Material(
@@ -369,9 +397,7 @@ class _BroadcastPanel extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    sosSent
-                                        ? 'SOS Broadcasted'
-                                        : 'SEND SOS BROADCAST',
+                                    sosSent ? 'Broadcasted' : 'SEND SOS',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w800,
@@ -379,7 +405,7 @@ class _BroadcastPanel extends StatelessWidget {
                                           ? BeaconColors.primary
                                           : Colors.white,
                                       fontFamily: 'Inter',
-                                      letterSpacing: sosSent ? 0 : 0.5,
+                                      letterSpacing: sosSent ? 0 : 0.6,
                                     ),
                                   ),
                                 ],
@@ -389,9 +415,9 @@ class _BroadcastPanel extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 const _AutoSosTile(),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -401,155 +427,6 @@ class _BroadcastPanel extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Light map painter
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _MapPainter extends CustomPainter {
-  final bool sosSent;
-  final double fillProgress;
-  final double ripple1;
-  final double ripple2;
-  final double ripple3;
-
-  const _MapPainter({
-    required this.sosSent,
-    required this.fillProgress,
-    required this.ripple1,
-    required this.ripple2,
-    required this.ripple3,
-  });
-
-  // How tall the bottom panel is (approximate) — pin sits above it
-  static const double _sheetHeight = 262;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = (size.height - _sheetHeight) / 2;
-
-    // ── Background ──────────────────────────────────────────────────────
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint()..color = const Color(0xFFF5F0EB),
-    );
-
-    _drawGrid(canvas, size);
-
-    // ── Colored region after SOS ────────────────────────────────────────
-    if (sosSent && fillProgress > 0) {
-      _drawColoredRegion(canvas, size, cx, cy);
-    }
-
-    // ── Subtle ripples ──────────────────────────────────────────────────
-    if (sosSent) {
-      _drawRipple(canvas, cx, cy, ripple1);
-      _drawRipple(canvas, cx, cy, ripple2);
-      _drawRipple(canvas, cx, cy, ripple3);
-    }
-
-    // ── Location pin ────────────────────────────────────────────────────
-    _drawLocationPin(canvas, cx, cy);
-  }
-
-  void _drawGrid(Canvas canvas, Size size) {
-    final color = sosSent
-        ? Color.lerp(
-            const Color(0xFFD9C4B5),
-            const Color(0xFFE8A07A),
-            fillProgress * 0.4,
-          )!
-        : const Color(0xFFDDD4C8);
-    final p = Paint()..color = color..strokeWidth = 0.8;
-    for (double y = 0; y < size.height; y += 26) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
-    }
-    for (double x = 0; x < size.width; x += 26) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
-    }
-  }
-
-  void _drawColoredRegion(Canvas canvas, Size size, double cx, double cy) {
-    final maxRadius = size.width * 0.85;
-    final radius    = maxRadius * fillProgress;
-
-    // Warm amber/orange wash — subtle on the light background
-    final shader = RadialGradient(
-      colors: [
-        const Color(0xFFD96B45).withOpacity(0.18),
-        const Color(0xFFE8A07A).withOpacity(0.10),
-        Colors.transparent,
-      ],
-      stops: const [0.0, 0.5, 1.0],
-    ).createShader(
-        Rect.fromCircle(center: Offset(cx, cy), radius: maxRadius));
-
-    canvas.drawCircle(
-      Offset(cx, cy),
-      radius,
-      Paint()..shader = shader,
-    );
-  }
-
-  void _drawRipple(Canvas canvas, double cx, double cy, double progress) {
-    if (progress == 0) return;
-    final maxR   = 120.0;
-    final r      = maxR * progress;
-    final opacity = (1.0 - progress).clamp(0.0, 1.0) * 0.35; // very subtle
-    canvas.drawCircle(
-      Offset(cx, cy),
-      r,
-      Paint()
-        ..color       = const Color(0xFFD96B45).withOpacity(opacity)
-        ..style       = PaintingStyle.stroke
-        ..strokeWidth = 1.2,
-    );
-  }
-
-  void _drawLocationPin(Canvas canvas, double cx, double cy) {
-    // Idle: dull orange-brown.  Active: vivid orange
-    final pinColor =
-        sosSent ? const Color(0xFFD96B45) : const Color(0xFFB07A55);
-    final dotColor =
-        sosSent ? Colors.white : const Color(0xFFF5EDE6);
-
-    // Subtle glow when active
-    if (sosSent) {
-      canvas.drawCircle(
-        Offset(cx, cy - 10),
-        18,
-        Paint()
-          ..color      = const Color(0xFFD96B45).withOpacity(0.18)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
-      );
-    }
-
-    // Pin body
-    final path = Path();
-    path.moveTo(cx, cy + 12);
-    path.cubicTo(cx - 2, cy + 5, cx - 14, cy, cx - 14, cy - 10);
-    path.arcToPoint(
-      Offset(cx + 14, cy - 10),
-      radius: const Radius.circular(14),
-      clockwise: false,
-    );
-    path.cubicTo(cx + 14, cy, cx + 2, cy + 5, cx, cy + 12);
-    path.close();
-    canvas.drawPath(path, Paint()..color = pinColor);
-
-    // Inner dot
-    canvas.drawCircle(Offset(cx, cy - 10), 4.5, Paint()..color = dotColor);
-  }
-
-  @override
-  bool shouldRepaint(_MapPainter o) =>
-      o.fillProgress != fillProgress ||
-      o.ripple1      != ripple1 ||
-      o.ripple2      != ripple2 ||
-      o.ripple3      != ripple3 ||
-      o.sosSent      != sosSent;
-}
-// ─── Message field ────────────────────────────────────────────────────────
 class _MessageField extends StatelessWidget {
   final TextEditingController controller;
   const _MessageField({required this.controller});
@@ -571,7 +448,7 @@ class _MessageField extends StatelessWidget {
           fontFamily: 'Inter',
         ),
         decoration: const InputDecoration(
-          hintText: 'Additional details (optional)...',
+          hintText: 'Details...',
           hintStyle: TextStyle(color: BeaconColors.textLight),
           border: InputBorder.none,
           contentPadding: EdgeInsets.all(14),
@@ -581,7 +458,6 @@ class _MessageField extends StatelessWidget {
   }
 }
 
-// ─── Auto-SOS opt-in tile (P2-15) ──────────────────────────────────────────
 class _AutoSosTile extends StatefulWidget {
   const _AutoSosTile();
 
@@ -623,25 +499,25 @@ class _AutoSosTileState extends State<_AutoSosTile> {
   Widget build(BuildContext context) {
     final enabled = _enabled ?? false;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: BeaconColors.surface,
+        color: const Color(0xFFF9F6F3),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: BeaconColors.cardBorder),
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: BeaconColors.primary.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
               Icons.accessibility_new_rounded,
               color: BeaconColors.primary,
-              size: 20,
+              size: 18,
             ),
           ),
           const SizedBox(width: 12),
@@ -651,9 +527,9 @@ class _AutoSosTileState extends State<_AutoSosTile> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Auto-SOS (fall detection)',
+                  'Auto-SOS',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: BeaconColors.textDark,
                     fontFamily: 'Inter',
@@ -661,7 +537,7 @@ class _AutoSosTileState extends State<_AutoSosTile> {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  '30 s countdown after a suspected fall, then auto-broadcast.',
+                  'Fall detection · 30s countdown',
                   style: TextStyle(
                     fontSize: 11,
                     color: BeaconColors.textMid,
