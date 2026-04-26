@@ -22,19 +22,15 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-        working-directory: echo
 
       - name: Verify formatting
         run: dart format --set-exit-if-changed .
-        working-directory: echo
 
       - name: Static analysis
         run: flutter analyze
-        working-directory: echo
 
       - name: Run tests
         run: flutter test
-        working-directory: echo
 
   build-apk:
     name: Build debug APK
@@ -57,19 +53,16 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-        working-directory: echo
 
       - name: Seed dart-defines
         run: cp dart-defines.example.json dart-defines.json
-        working-directory: echo
 
       - name: Build debug APK
         run: flutter build apk --debug --dart-define-from-file=dart-defines.json
-        working-directory: echo
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: echo-debug-apk
-          path: echo/build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
