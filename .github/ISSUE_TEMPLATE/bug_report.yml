@@ -1,0 +1,60 @@
+name: Bug report
+description: Something is broken in Echo
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill in the sections below.
+
+        > **Security issue?** Stop. Please follow [SECURITY.md](../SECURITY.md) instead — do not file a public issue.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+      placeholder: When I … the app …
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Launch the app on device A …
+        2. Launch the app on device B …
+        3. Send an SOS …
+        4. Observe …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device(s) — model + Android version
+      placeholder: "Pixel 7 (Android 14), Samsung A52 (Android 13)"
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: Echo version / commit SHA
+      placeholder: "1.0.0+1 / abc1234"
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`flutter doctor -v` output"
+      render: shell
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / screenshots
+      description: Drag-and-drop screenshots; paste `adb logcat` excerpts here.
+      render: shell

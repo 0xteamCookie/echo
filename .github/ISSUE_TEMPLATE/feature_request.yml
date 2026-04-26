@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest an improvement to Echo
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Anchor your idea to a real crisis-response scenario where possible.
+      placeholder: "During wildfire evacuations …"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Suggested priority
+      options:
+        - "P0 — life-safety blocker"
+        - "P1 — major UX / reliability"
+        - "P2 — quality / hardening"
+        - "P3 — nice-to-have"
+    validations:
+      required: true
