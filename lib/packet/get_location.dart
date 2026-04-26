@@ -24,11 +24,9 @@ Future<String> getCurrentLocationString() async {
 
   try {
     Position position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-      ),
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
     );
-    
+
     return '${position.latitude}, ${position.longitude}';
   } catch (e) {
     return 'Failed to get location: $e';

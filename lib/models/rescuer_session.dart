@@ -45,12 +45,12 @@ class RescuerSession {
 
   /// Flat key-value pairs suitable for [FlutterSecureStorage].
   Map<String, String> toStorageMap() => {
-        'name': name,
-        'role': role,
-        'lat': lat.toString(),
-        'lng': lng.toString(),
-        'radius_m': radiusM.toString(),
-      };
+    'name': name,
+    'role': role,
+    'lat': lat.toString(),
+    'lng': lng.toString(),
+    'radius_m': radiusM.toString(),
+  };
 
   static double _toDouble(dynamic v, {double fallback = 0}) {
     if (v is num) return v.toDouble();

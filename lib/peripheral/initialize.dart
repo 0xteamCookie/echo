@@ -11,10 +11,7 @@ const String myCharacteristicUuid = kCharacteristicUuid;
 Function(String rawMessage, String senderDeviceId)? onPeripheralMessageReceived;
 
 Future<void> requestBlePermissions() async {
-  await [
-    Permission.bluetooth,
-    Permission.bluetoothAdvertise,
-  ].request();
+  await [Permission.bluetooth, Permission.bluetoothAdvertise].request();
 }
 
 Future<void> setupBlePeripheral() async {
@@ -22,7 +19,7 @@ Future<void> setupBlePeripheral() async {
     await requestBlePermissions();
     await BlePeripheral.initialize();
     print("BLE INITIALIZED - OPEN GATT");
-    
+
     // Listen to OS Bluetooth State changes
     BlePeripheral.setBleStateChangeCallback((bool isOn) async {
       print("Bluetooth State Changed: ${isOn ? "ON" : "OFF"}");
@@ -33,24 +30,28 @@ Future<void> setupBlePeripheral() async {
       }
     });
 
-    BlePeripheral.setWriteRequestCallback(
-      (String deviceId, String characteristicId, int offset, Uint8List? value) {
-        if (characteristicId.toLowerCase() == myCharacteristicUuid.toLowerCase() && value != null) {
-          try {
-            String receivedMessage = utf8.decode(value);
-            print("Received Message from $deviceId: $receivedMessage");
-            onPeripheralMessageReceived?.call(receivedMessage, deviceId);
-          } catch (e) {
-            print("Failed to decode written data: $e");
-          }
-          return null; // Acknowledge standard write with no error code
+    BlePeripheral.setWriteRequestCallback((
+      String deviceId,
+      String characteristicId,
+      int offset,
+      Uint8List? value,
+    ) {
+      if (characteristicId.toLowerCase() ==
+              myCharacteristicUuid.toLowerCase() &&
+          value != null) {
+        try {
+          String receivedMessage = utf8.decode(value);
+          print("Received Message from $deviceId: $receivedMessage");
+          onPeripheralMessageReceived?.call(receivedMessage, deviceId);
+        } catch (e) {
+          print("Failed to decode written data: $e");
         }
-        return null;
-      },
-    );
+        return null; // Acknowledge standard write with no error code
+      }
+      return null;
+    });
 
     await _startAdvertisingSequence();
-    
   } catch (e) {
     print("Error Initializing, $e");
   }
@@ -61,9 +62,9 @@ Future<void> _startAdvertisingSequence() async {
     try {
       await BlePeripheral.stopAdvertising();
     } catch (_) {}
-    
+
     await BlePeripheral.clearServices();
-    await Future.delayed(const Duration(milliseconds: 500)); 
+    await Future.delayed(const Duration(milliseconds: 500));
     await BlePeripheral.addService(
       BleService(
         uuid: myServiceUuid,
@@ -71,13 +72,9 @@ Future<void> _startAdvertisingSequence() async {
         characteristics: [
           BleCharacteristic(
             uuid: myCharacteristicUuid,
-            properties: [
-              CharacteristicProperties.writeWithoutResponse.index,
-            ],
+            properties: [CharacteristicProperties.writeWithoutResponse.index],
             value: null,
-            permissions: [
-              AttributePermissions.writeable.index
-            ],
+            permissions: [AttributePermissions.writeable.index],
           ),
         ],
       ),

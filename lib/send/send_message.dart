@@ -30,7 +30,9 @@ Future<void> sendNewMessage(String textMessage, {bool isSos = false}) async {
     packetMap['signature'] = signature;
 
     await insertMessage(packetMap);
-    print("💾 [sendNewMessage] Message saved. Will be picked up by relay loop.");
+    print(
+      "💾 [sendNewMessage] Message saved. Will be picked up by relay loop.",
+    );
 
     // P1-3: SOS fast-path. Don't wait up to 15 s for the next relay tick —
     // blast the packet to every currently-discovered mesh node in parallel

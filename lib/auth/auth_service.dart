@@ -22,10 +22,7 @@ SQIDAQAB
   static Future<bool> verifyAndSaveToken(String token) async {
     try {
       // Use ECPublicKey for ES256
-      final jwt = JWT.verify(
-        token,
-        RSAPublicKey(publicKeyPem),
-      );
+      final jwt = JWT.verify(token, RSAPublicKey(publicKeyPem));
 
       print("✅ VALID USER");
       print("Payload: ${jwt.payload}");

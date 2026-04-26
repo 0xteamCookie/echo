@@ -37,12 +37,7 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
         ReportScreen(),
       ];
     } else {
-      return const [
-        SosScreen(),
-        HomeScreen(),
-        ChatScreen(),
-        MapScreen(),
-      ];
+      return const [SosScreen(), HomeScreen(), ChatScreen(), MapScreen()];
     }
   }
 
@@ -107,7 +102,7 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     )..forward();
 
     _initControllers();
-    
+
     // Listen to role changes to re-init controllers
     AppState().role.addListener(_onRoleChanged);
   }
@@ -191,7 +186,9 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Logout'),
-        content: const Text('Are you sure you want to end your rescuer session?'),
+        content: const Text(
+          'Are you sure you want to end your rescuer session?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -303,7 +300,10 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.sensors_rounded, color: BeaconColors.primary),
+              leading: const Icon(
+                Icons.sensors_rounded,
+                color: BeaconColors.primary,
+              ),
               title: const Text('Nearby Devices (Bluetooth)'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -311,7 +311,10 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.list_alt_rounded, color: BeaconColors.textMid),
+              leading: const Icon(
+                Icons.list_alt_rounded,
+                color: BeaconColors.textMid,
+              ),
               title: const Text('Mesh Message Log'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -319,8 +322,14 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_sweep_rounded, color: Colors.red),
-              title: const Text('Nuke Databse', style: TextStyle(color: Colors.red)),
+              leading: const Icon(
+                Icons.delete_sweep_rounded,
+                color: Colors.red,
+              ),
+              title: const Text(
+                'Nuke Databse',
+                style: TextStyle(color: Colors.red),
+              ),
               onTap: () async {
                 Navigator.pop(ctx);
                 final confirmed = await showDialog<bool>(
@@ -337,7 +346,9 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
                       ),
                       TextButton(
                         onPressed: () => Navigator.of(dialogCtx).pop(true),
-                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
                         child: const Text('Nuke'),
                       ),
                     ],
@@ -349,7 +360,9 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
                 AppState().heartbeats.value = [];
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Database cleared. Fresh start!')),
+                    const SnackBar(
+                      content: Text('Database cleared. Fresh start!'),
+                    ),
                   );
                 }
               },
@@ -424,6 +437,7 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
     );
   }
 }
+
 class _NavItem {
   final IconData icon;
   final String label;

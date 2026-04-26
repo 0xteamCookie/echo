@@ -43,7 +43,9 @@ Future<void> _relayTick() async {
       return rb.compareTo(ra); // descending RSSI (stronger first)
     });
 
-    print("⏱️ [RelayLoop] Tick Executing! Non-Expired Msgs: ${messages.length} // Nearby Active Nodes: ${nearbyDevices.length}");
+    print(
+      "⏱️ [RelayLoop] Tick Executing! Non-Expired Msgs: ${messages.length} // Nearby Active Nodes: ${nearbyDevices.length}",
+    );
 
     for (final msg in messages) {
       final messageId = (msg['messageId'] ?? '').toString();
@@ -76,4 +78,3 @@ Future<bool> _hasAcknowledged(String messageId, String deviceId) async {
   final devices = await getDevicesForMessage(messageId);
   return devices.any((d) => d['deviceId'] == deviceId);
 }
-

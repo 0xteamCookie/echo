@@ -32,7 +32,8 @@ Future<void> insertMessage(Map<String, dynamic> data) async {
     for (final e in data.entries)
       if (_messageColumns.contains(e.key)) e.key: e.value,
   };
-  if (row['time'] == null || (row['time'] is String && (row['time'] as String).isEmpty)) {
+  if (row['time'] == null ||
+      (row['time'] is String && (row['time'] as String).isEmpty)) {
     final expiresAt = row['expiresAt'];
     String? derived;
     if (expiresAt is String && expiresAt.isNotEmpty) {
@@ -61,14 +62,10 @@ Future<void> insertMessageDevice({
 }) async {
   final db = await DatabaseHelper.instance.database;
 
-  await db.insert(
-    'message_devices',
-    {
-      'messageId': messageId,
-      'deviceId': deviceId,
-    },
-    conflictAlgorithm: ConflictAlgorithm.ignore,
-  );
+  await db.insert('message_devices', {
+    'messageId': messageId,
+    'deviceId': deviceId,
+  }, conflictAlgorithm: ConflictAlgorithm.ignore);
 }
 
 Future<List<Map<String, dynamic>>> getMessages() async {
@@ -89,7 +86,9 @@ Future<bool> messageExists(String messageId) async {
   return result.isNotEmpty;
 }
 
-Future<List<Map<String, dynamic>>> getDevicesForMessage(String messageId) async {
+Future<List<Map<String, dynamic>>> getDevicesForMessage(
+  String messageId,
+) async {
   final db = await DatabaseHelper.instance.database;
 
   return await db.query(
@@ -108,11 +107,7 @@ Future<List<Map<String, dynamic>>> getNonExpiredMessages() async {
   final db = await DatabaseHelper.instance.database;
   final now = DateTime.now().toUtc().toIso8601String();
 
-  return await db.query(
-    'messages',
-    where: 'expiresAt > ?',
-    whereArgs: [now],
-  );
+  return await db.query('messages', where: 'expiresAt > ?', whereArgs: [now]);
 }
 
 Future<void> nukeDatabase() async {
@@ -137,10 +132,7 @@ Future<void> markAsSynced(String id) async {
 
   await db.update(
     'messages',
-    {
-      'isSynced': 1,
-      'lastSyncedAt': DateTime.now().toIso8601String(),
-    },
+    {'isSynced': 1, 'lastSyncedAt': DateTime.now().toIso8601String()},
     where: 'messageId = ?',
     whereArgs: [id],
   );

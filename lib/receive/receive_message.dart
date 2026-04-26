@@ -103,4 +103,3 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(
     return null;
   }
 }
-

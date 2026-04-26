@@ -56,83 +56,85 @@ class _HomeScreenState extends State<HomeScreen> {
     return RefreshIndicator(
       onRefresh: _loadAnnouncements,
       child: ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-      children: [
-        if (session != null) ...[
-          const SizedBox(height: 4),
-          _RoleAssignmentCard(session: session),
-          const SizedBox(height: 20),
-        ],
-
-        const SizedBox(height: 4),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              'Mesh Status',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                color: BeaconColors.textDark,
-                fontFamily: 'Inter',
-                height: 1.1,
-              ),
-            ),
-            const Spacer(),
-            _OfflineBadge(),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: [
+          if (session != null) ...[
+            const SizedBox(height: 4),
+            _RoleAssignmentCard(session: session),
+            const SizedBox(height: 20),
           ],
-        ),
-        const SizedBox(height: 20),
 
-        _StatusCard(),
-        const SizedBox(height: 16),
-
-        const Text(
-          'Announcements',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: BeaconColors.textDark,
-            fontFamily: 'Inter',
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                'Mesh Status',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: BeaconColors.textDark,
+                  fontFamily: 'Inter',
+                  height: 1.1,
+                ),
+              ),
+              const Spacer(),
+              _OfflineBadge(),
+            ],
           ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 20),
 
-        if (_loadingAnnouncements && _announcements.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          )
-        else if (_announcements.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Text(
-              'No announcements yet.',
-              style: TextStyle(
-                fontSize: 13,
-                color: BeaconColors.textLight,
-                fontFamily: 'Inter',
-              ),
-            ),
-          )
-        else
-          ..._announcements.map(
-            (a) => _SimpleAnnouncement(
-              text: a.message,
-              time: _relativeTime(a.createdAt),
-              sender: a.createdBy?.isNotEmpty == true
-                  ? a.createdBy!
-                  : (a.locationName.isNotEmpty ? a.locationName : 'Announcement'),
+          _StatusCard(),
+          const SizedBox(height: 16),
+
+          const Text(
+            'Announcements',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: BeaconColors.textDark,
+              fontFamily: 'Inter',
             ),
           ),
-      ],
-    ),
+          const SizedBox(height: 8),
+
+          if (_loadingAnnouncements && _announcements.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else if (_announcements.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                'No announcements yet.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: BeaconColors.textLight,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            )
+          else
+            ..._announcements.map(
+              (a) => _SimpleAnnouncement(
+                text: a.message,
+                time: _relativeTime(a.createdAt),
+                sender: a.createdBy?.isNotEmpty == true
+                    ? a.createdBy!
+                    : (a.locationName.isNotEmpty
+                          ? a.locationName
+                          : 'Announcement'),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -195,7 +197,8 @@ class _SimpleAnnouncement extends StatelessWidget {
   }
 }
 
-class _OfflineBadge extends StatelessWidget {  @override
+class _OfflineBadge extends StatelessWidget {
+  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -236,7 +239,8 @@ class _StatusCard extends StatefulWidget {
   State<_StatusCard> createState() => _StatusCardState();
 }
 
-class _StatusCardState extends State<_StatusCard> with SingleTickerProviderStateMixin {
+class _StatusCardState extends State<_StatusCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ripple;
 
   @override
@@ -313,7 +317,11 @@ class _StatusCardState extends State<_StatusCard> with SingleTickerProviderState
                             color: Colors.white24,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.cell_tower_rounded, color: Colors.white, size: 22),
+                          child: const Icon(
+                            Icons.cell_tower_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
                         ),
                       ],
                     );
@@ -361,7 +369,10 @@ class _StatusCardState extends State<_StatusCard> with SingleTickerProviderState
               Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.20),
                       borderRadius: BorderRadius.circular(12),
@@ -377,7 +388,14 @@ class _StatusCardState extends State<_StatusCard> with SingleTickerProviderState
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text('nodes', style: TextStyle(color: Colors.white54, fontSize: 10, fontFamily: 'Inter')),
+                  const Text(
+                    'nodes',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 10,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -503,4 +521,3 @@ class _RoleAssignmentCard extends StatelessWidget {
     );
   }
 }
-

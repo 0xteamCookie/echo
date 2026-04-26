@@ -36,6 +36,7 @@ class Announcement {
       }
       return DateTime.now();
     }
+
     return Announcement(
       id: (j['id'] ?? '').toString(),
       title: j['title'] as String?,
@@ -72,8 +73,9 @@ Future<List<Announcement>> fetchAnnouncements({int limit = 20}) async {
       qp['long'] = lng.toString();
     }
 
-    final uri = Uri.parse('$_apiBaseUrl/api/announcement')
-        .replace(queryParameters: qp);
+    final uri = Uri.parse(
+      '$_apiBaseUrl/api/announcement',
+    ).replace(queryParameters: qp);
 
     final res = await http
         .get(uri, headers: {'Accept': 'application/json'})

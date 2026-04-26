@@ -11,7 +11,8 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateMixin {
+class _ChatScreenState extends State<ChatScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   String _myName = 'Anon';
@@ -66,7 +67,11 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
                       color: BeaconColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.person_rounded, color: BeaconColors.primary, size: 20),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      color: BeaconColors.primary,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   const Text(
@@ -83,14 +88,22 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
               const SizedBox(height: 8),
               const Text(
                 'This name is broadcast with every message you send.',
-                style: TextStyle(color: BeaconColors.textMid, fontSize: 13, fontFamily: 'Inter', height: 1.4),
+                style: TextStyle(
+                  color: BeaconColors.textMid,
+                  fontSize: 13,
+                  fontFamily: 'Inter',
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: nameCtrl,
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
-                style: const TextStyle(color: BeaconColors.textDark, fontFamily: 'Inter'),
+                style: const TextStyle(
+                  color: BeaconColors.textDark,
+                  fontFamily: 'Inter',
+                ),
                 decoration: const InputDecoration(hintText: 'Enter your name…'),
               ),
               const SizedBox(height: 20),
@@ -101,11 +114,16 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
                       style: OutlinedButton.styleFrom(
                         foregroundColor: BeaconColors.textMid,
                         side: const BorderSide(color: BeaconColors.cardBorder),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel', style: TextStyle(fontFamily: 'Inter')),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(fontFamily: 'Inter'),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -115,16 +133,26 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
                         backgroundColor: BeaconColors.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       onPressed: () async {
-                        final newName = nameCtrl.text.trim().isEmpty ? 'Anon' : nameCtrl.text.trim();
+                        final newName = nameCtrl.text.trim().isEmpty
+                            ? 'Anon'
+                            : nameCtrl.text.trim();
                         await UserSettings.setName(newName);
                         if (mounted) setState(() => _myName = newName);
                         if (context.mounted) Navigator.pop(context);
                       },
-                      child: const Text('Save', style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600)),
+                      child: const Text(
+                        'Save',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -150,10 +178,10 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
 
     final list = List<Map<String, dynamic>>.from(AppState().chatMessages.value);
     list.insert(0, {
-      'message':    textToSend,
-      'deviceId':   'Me',
+      'message': textToSend,
+      'deviceId': 'Me',
       'senderName': _myName,
-      'time':       DateTime.now().toIso8601String().substring(11, 16),
+      'time': DateTime.now().toIso8601String().substring(11, 16),
     });
     AppState().chatMessages.value = list;
   }
@@ -177,7 +205,11 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.person_rounded, size: 14, color: BeaconColors.textMid),
+                  const Icon(
+                    Icons.person_rounded,
+                    size: 14,
+                    color: BeaconColors.textMid,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     _myName,
@@ -189,7 +221,11 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
                     ),
                   ),
                   const SizedBox(width: 6),
-                  const Icon(Icons.edit_rounded, size: 12, color: BeaconColors.textLight),
+                  const Icon(
+                    Icons.edit_rounded,
+                    size: 12,
+                    color: BeaconColors.textLight,
+                  ),
                 ],
               ),
             ),
@@ -245,7 +281,11 @@ class _EmptyChat extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: BeaconColors.cardBorder),
             ),
-            child: const Icon(Icons.chat_bubble_outline_rounded, size: 36, color: BeaconColors.textLight),
+            child: const Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 36,
+              color: BeaconColors.textLight,
+            ),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -260,7 +300,11 @@ class _EmptyChat extends StatelessWidget {
           const SizedBox(height: 6),
           const Text(
             'Be the first to broadcast!',
-            style: TextStyle(fontSize: 13, color: BeaconColors.textLight, fontFamily: 'Inter'),
+            style: TextStyle(
+              fontSize: 13,
+              color: BeaconColors.textLight,
+              fontFamily: 'Inter',
+            ),
           ),
         ],
       ),
@@ -293,7 +337,7 @@ class _MessageBubbleState extends State<_MessageBubble>
       duration: const Duration(milliseconds: 350),
     );
     _fadeIn = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
-    _slide  = Tween<Offset>(
+    _slide = Tween<Offset>(
       begin: const Offset(0, 0.1),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
@@ -319,7 +363,9 @@ class _MessageBubbleState extends State<_MessageBubble>
           padding: const EdgeInsets.only(bottom: 10),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisAlignment: isMe
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
             children: [
               if (!isMe) ...[
                 _Avatar(name: msg['senderName'] ?? msg['deviceId'] ?? '?'),
@@ -327,7 +373,9 @@ class _MessageBubbleState extends State<_MessageBubble>
               ],
               Flexible(
                 child: Column(
-                  crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  crossAxisAlignment: isMe
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
                   children: [
                     if (!isMe)
                       Padding(
@@ -343,9 +391,14 @@ class _MessageBubbleState extends State<_MessageBubble>
                         ),
                       ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
-                        color: isMe ? BeaconColors.primary : BeaconColors.surface,
+                        color: isMe
+                            ? BeaconColors.primary
+                            : BeaconColors.surface,
                         borderRadius: BorderRadius.only(
                           topLeft: const Radius.circular(18),
                           topRight: const Radius.circular(18),
@@ -357,7 +410,8 @@ class _MessageBubbleState extends State<_MessageBubble>
                             : Border.all(color: BeaconColors.cardBorder),
                         boxShadow: [
                           BoxShadow(
-                            color: (isMe ? BeaconColors.primary : Colors.black).withOpacity(isMe ? 0.2 : 0.04),
+                            color: (isMe ? BeaconColors.primary : Colors.black)
+                                .withOpacity(isMe ? 0.2 : 0.04),
                             blurRadius: 8,
                             offset: const Offset(0, 3),
                           ),
@@ -386,19 +440,43 @@ class _MessageBubbleState extends State<_MessageBubble>
                           ),
                         ),
                         if (msg['relayerMac'] != null) ...[
-                          const Text('  ·  ', style: TextStyle(fontSize: 10, color: BeaconColors.textLight)),
-                          const Icon(Icons.shuffle_rounded, size: 10, color: BeaconColors.textLight),
+                          const Text(
+                            '  ·  ',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: BeaconColors.textLight,
+                            ),
+                          ),
+                          const Icon(
+                            Icons.shuffle_rounded,
+                            size: 10,
+                            color: BeaconColors.textLight,
+                          ),
                           const SizedBox(width: 2),
                           Text(
                             'relayed',
-                            style: const TextStyle(fontSize: 10, color: BeaconColors.textLight, fontFamily: 'Inter'),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: BeaconColors.textLight,
+                              fontFamily: 'Inter',
+                            ),
                           ),
                         ],
                         if (msg['messageId'] != null) ...[
-                          const Text('  ·  ', style: TextStyle(fontSize: 10, color: BeaconColors.textLight)),
+                          const Text(
+                            '  ·  ',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: BeaconColors.textLight,
+                            ),
+                          ),
                           Text(
                             '#${(msg['messageId'] as String).length > 6 ? (msg['messageId'] as String).substring(0, 6) : msg['messageId']}',
-                            style: const TextStyle(fontSize: 10, color: BeaconColors.textLight, fontFamily: 'Inter'),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: BeaconColors.textLight,
+                              fontFamily: 'Inter',
+                            ),
                           ),
                         ],
                       ],
@@ -424,15 +502,21 @@ class _Avatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final initials = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
     const colors = [
-      Color(0xFFD96B45), Color(0xFF6BBFA0), Color(0xFFE8A87C),
-      Color(0xFF9B7FD4), Color(0xFF5B9BD5),
+      Color(0xFFD96B45),
+      Color(0xFF6BBFA0),
+      Color(0xFFE8A87C),
+      Color(0xFF9B7FD4),
+      Color(0xFF5B9BD5),
     ];
     final color = colors[name.hashCode.abs() % colors.length];
 
     return Container(
       width: 30,
       height: 30,
-      decoration: BoxDecoration(color: color.withOpacity(0.2), shape: BoxShape.circle),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        shape: BoxShape.circle,
+      ),
       child: Center(
         child: Text(
           initials,
@@ -480,8 +564,14 @@ class _Composer extends StatelessWidget {
               minLines: 1,
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
-              style: const TextStyle(color: BeaconColors.textDark, fontFamily: 'Inter', fontSize: 15),
-              decoration: const InputDecoration(hintText: 'Broadcast a message…'),
+              style: const TextStyle(
+                color: BeaconColors.textDark,
+                fontFamily: 'Inter',
+                fontSize: 15,
+              ),
+              decoration: const InputDecoration(
+                hintText: 'Broadcast a message…',
+              ),
               onSubmitted: (_) => onSend(),
             ),
           ),
@@ -500,10 +590,18 @@ class _Composer extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: hasText ? BeaconColors.primary : BeaconColors.cardBorder,
+                    color: hasText
+                        ? BeaconColors.primary
+                        : BeaconColors.cardBorder,
                     shape: BoxShape.circle,
                     boxShadow: hasText
-                        ? [BoxShadow(color: BeaconColors.primary.withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4))]
+                        ? [
+                            BoxShadow(
+                              color: BeaconColors.primary.withOpacity(0.35),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
                         : [],
                   ),
                   child: IconButton(

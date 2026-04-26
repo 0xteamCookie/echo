@@ -21,10 +21,7 @@ import 'services/activity_monitor.dart';
 import 'services/mesh_foreground_service.dart';
 import 'core/constants.dart';
 
-enum UserRole {
-  user,
-  rescuer,
-}
+enum UserRole { user, rescuer }
 
 // ─── Global State ───────────────────────────────────────────────────────────
 class AppState {
@@ -35,8 +32,12 @@ class AppState {
   final ValueNotifier<UserRole> role = ValueNotifier(UserRole.user);
   final ValueNotifier<RescuerSession?> rescuerSession = ValueNotifier(null);
   final ValueNotifier<List<Map<String, dynamic>>> devices = ValueNotifier([]);
-  final ValueNotifier<List<Map<String, dynamic>>> chatMessages = ValueNotifier([]);
-  final ValueNotifier<List<Map<String, dynamic>>> heartbeats = ValueNotifier([]);
+  final ValueNotifier<List<Map<String, dynamic>>> chatMessages = ValueNotifier(
+    [],
+  );
+  final ValueNotifier<List<Map<String, dynamic>>> heartbeats = ValueNotifier(
+    [],
+  );
 }
 
 /// Root navigator key — used by background services (ActivityMonitor) that
@@ -46,17 +47,17 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 // ─── Warm Colour Palette ────────────────────────────────────────────────────
 class BeaconColors {
-  static const background  = Color(0xFFFAF7F2);   // warm off-white
-  static const surface     = Color(0xFFFFFFFF);
-  static const surfaceWarm = Color(0xFFFFF6EE);    // faint peach tint
-  static const primary     = Color(0xFFD96B45);    // deeper terracotta
-  static const secondary   = Color(0xFF6BBFA0);    // muted sage-green
-  static const accent      = Color(0xFFE8A87C);    // warm amber
-  static const textDark    = Color(0xFF2C2217);
-  static const textMid     = Color(0xFF7A6A5A);
-  static const textLight   = Color(0xFFB8A898);
-  static const cardBorder  = Color(0xFFEDE3D8);
-  static const navBg       = Color(0xFFFFFBF7);
+  static const background = Color(0xFFFAF7F2); // warm off-white
+  static const surface = Color(0xFFFFFFFF);
+  static const surfaceWarm = Color(0xFFFFF6EE); // faint peach tint
+  static const primary = Color(0xFFD96B45); // deeper terracotta
+  static const secondary = Color(0xFF6BBFA0); // muted sage-green
+  static const accent = Color(0xFFE8A87C); // warm amber
+  static const textDark = Color(0xFF2C2217);
+  static const textMid = Color(0xFF7A6A5A);
+  static const textLight = Color(0xFFB8A898);
+  static const cardBorder = Color(0xFFEDE3D8);
+  static const navBg = Color(0xFFFFFBF7);
 }
 
 void main() async {
@@ -72,7 +73,8 @@ void main() async {
   );
 
   final prefs = await SharedPreferences.getInstance();
-  final bool showOnboarding = !(prefs.getBool(kPrefHasCompletedOnboarding) ?? false);
+  final bool showOnboarding =
+      !(prefs.getBool(kPrefHasCompletedOnboarding) ?? false);
 
   runApp(MyApp(showOnboarding: showOnboarding));
 
@@ -142,7 +144,9 @@ void _initializeApp() async {
       if (list.length > 50) list.removeLast();
       AppState().heartbeats.value = list;
     } else {
-      final list = List<Map<String, dynamic>>.from(AppState().chatMessages.value);
+      final list = List<Map<String, dynamic>>.from(
+        AppState().chatMessages.value,
+      );
       list.insert(0, payload);
       AppState().chatMessages.value = list;
     }
@@ -155,9 +159,11 @@ void _initializeApp() async {
   AppState().heartbeats.value = sosHistory.reversed.toList();
 
   // Sync automatically when internet reconnects
-  Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) {
+  Connectivity().onConnectivityChanged.listen((
+    List<ConnectivityResult> result,
+  ) {
     if (!result.contains(ConnectivityResult.none)) {
-       syncMessages();
+      syncMessages();
     }
   });
 
@@ -181,9 +187,10 @@ void _initializeApp() async {
     sosTrigger: (msg) async {
       await sendSosHeartbeat(department: 'Rescue', additionalMessage: msg);
     },
-    warningHandler: ({required countdown, required onCancel, required onConfirm}) {
-      _showFallWarningDialog(countdown, onCancel, onConfirm);
-    },
+    warningHandler:
+        ({required countdown, required onCancel, required onConfirm}) {
+          _showFallWarningDialog(countdown, onCancel, onConfirm);
+        },
   );
   try {
     await ActivityMonitor.instance.start();
@@ -256,17 +263,18 @@ class _FallWarningDialogState extends State<_FallWarningDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      icon: const Icon(Icons.warning_rounded, color: Color(0xFFD96B45), size: 40),
+      icon: const Icon(
+        Icons.warning_rounded,
+        color: Color(0xFFD96B45),
+        size: 40,
+      ),
       title: const Text('Possible fall detected'),
       content: Text(
         'Auto-SOS will broadcast in $_secondsLeft s unless you cancel.',
         textAlign: TextAlign.center,
       ),
       actions: [
-        TextButton(
-          onPressed: widget.onCancel,
-          child: const Text("I'm OK"),
-        ),
+        TextButton(onPressed: widget.onCancel, child: const Text("I'm OK")),
         ElevatedButton(
           onPressed: widget.onSendNow,
           child: const Text('Send now'),
@@ -291,19 +299,34 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: BeaconColors.background,
         primaryColor: BeaconColors.primary,
         colorScheme: const ColorScheme.light(
-          primary:   BeaconColors.primary,
+          primary: BeaconColors.primary,
           secondary: BeaconColors.secondary,
-          surface:   BeaconColors.surface,
+          surface: BeaconColors.surface,
           onPrimary: Colors.white,
           onSecondary: Colors.white,
         ),
         fontFamily: 'Inter',
         textTheme: const TextTheme(
-          displayLarge: TextStyle(color: BeaconColors.textDark, fontWeight: FontWeight.w800),
-          titleLarge:   TextStyle(color: BeaconColors.textDark, fontWeight: FontWeight.w700, fontSize: 20),
-          titleMedium:  TextStyle(color: BeaconColors.textDark, fontWeight: FontWeight.w600, fontSize: 16),
-          bodyMedium:   TextStyle(color: BeaconColors.textMid,  fontSize: 14, height: 1.5),
-          bodySmall:    TextStyle(color: BeaconColors.textLight, fontSize: 11),
+          displayLarge: TextStyle(
+            color: BeaconColors.textDark,
+            fontWeight: FontWeight.w800,
+          ),
+          titleLarge: TextStyle(
+            color: BeaconColors.textDark,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
+          titleMedium: TextStyle(
+            color: BeaconColors.textDark,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+          bodyMedium: TextStyle(
+            color: BeaconColors.textMid,
+            fontSize: 14,
+            height: 1.5,
+          ),
+          bodySmall: TextStyle(color: BeaconColors.textLight, fontSize: 11),
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: BeaconColors.background,
@@ -339,15 +362,29 @@ class MyApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(28),
-            borderSide: const BorderSide(color: BeaconColors.primary, width: 1.5),
+            borderSide: const BorderSide(
+              color: BeaconColors.primary,
+              width: 1.5,
+            ),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          hintStyle: const TextStyle(color: BeaconColors.textLight, fontFamily: 'Inter'),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 14,
+          ),
+          hintStyle: const TextStyle(
+            color: BeaconColors.textLight,
+            fontFamily: 'Inter',
+          ),
         ),
         snackBarTheme: SnackBarThemeData(
           backgroundColor: BeaconColors.textDark,
-          contentTextStyle: const TextStyle(color: Colors.white, fontFamily: 'Inter'),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          contentTextStyle: const TextStyle(
+            color: Colors.white,
+            fontFamily: 'Inter',
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       ),

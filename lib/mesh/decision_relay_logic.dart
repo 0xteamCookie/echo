@@ -18,7 +18,9 @@ Future<List<String>> evaluateRelayDecision({
 
     // Check collision timeout
     if (shouldSkipDevice(targetDeviceId)) {
-      print("🛑 [evaluateRelayDecision] Skipping MAC: $targetDeviceId (In Collision Timeout)");
+      print(
+        "🛑 [evaluateRelayDecision] Skipping MAC: $targetDeviceId (In Collision Timeout)",
+      );
       continue;
     }
 
@@ -26,9 +28,13 @@ Future<List<String>> evaluateRelayDecision({
     final alreadySent = await hasAcknowledged(messageId, targetDeviceId);
     if (!alreadySent) {
       devicesThatNeedMessage.add(targetDeviceId);
-      print("🟢 [evaluateRelayDecision] Queuing MAC: $targetDeviceId (Needs this message)");
+      print(
+        "🟢 [evaluateRelayDecision] Queuing MAC: $targetDeviceId (Needs this message)",
+      );
     } else {
-      print("⏭️ [evaluateRelayDecision] Skipping MAC: $targetDeviceId (Already Acknowledged)");
+      print(
+        "⏭️ [evaluateRelayDecision] Skipping MAC: $targetDeviceId (Already Acknowledged)",
+      );
     }
   }
 
@@ -49,7 +55,9 @@ Future<void> relayMessage(
         : int.tryParse((packet['hopCount'] ?? '0').toString()) ?? 0;
 
     if (currentHops >= maxHops) {
-      print('⏹️ [relayMessage] Dropping $messageId — TTL exhausted ($currentHops/$maxHops hops).');
+      print(
+        '⏹️ [relayMessage] Dropping $messageId — TTL exhausted ($currentHops/$maxHops hops).',
+      );
       return;
     }
 
@@ -69,7 +77,9 @@ Future<void> relayMessage(
       compactPayload = encodePacketV2(outgoing);
     }
     final bytes = utf8.encode(compactPayload);
-    print("📡 [relayMessage] Transmitting messageId: $messageId (hop ${currentHops + 1}/$maxHops).");
+    print(
+      "📡 [relayMessage] Transmitting messageId: $messageId (hop ${currentHops + 1}/$maxHops).",
+    );
     print("📦 [relayMessage] Encoded Packet byte size: ${bytes.length} bytes.");
 
     if (targetDeviceIds.isEmpty) {
@@ -77,14 +87,19 @@ Future<void> relayMessage(
       return;
     }
 
-    print("🚀 [relayMessage] Emitting payload to ${targetDeviceIds.length} device(s)!");
+    print(
+      "🚀 [relayMessage] Emitting payload to ${targetDeviceIds.length} device(s)!",
+    );
 
     await stopScanning();
 
     for (final targetDeviceId in targetDeviceIds) {
       final success = await dispatchPayloadToDevice(targetDeviceId, bytes);
       if (success) {
-        await insertMessageDevice(messageId: messageId, deviceId: targetDeviceId);
+        await insertMessageDevice(
+          messageId: messageId,
+          deviceId: targetDeviceId,
+        );
       }
     }
 

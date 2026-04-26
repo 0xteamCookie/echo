@@ -89,39 +89,39 @@ class DatabaseHelper {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_messages_expiresAt ON messages(expiresAt);',
       );
-    if (oldVersion < 3) {
-      // P1-5: track rescuer acknowledgement state per message.
-      try {
-        await db.execute('ALTER TABLE messages ADD COLUMN ackStatus TEXT;');
-      } catch (_) {}
-    }
-    if (oldVersion < 4) {
-      // P2-11: ed25519 signature + sender public key fields, and P2-7
-      // on-device triage blob. All nullable; v1/v2 rows stay valid.
-      try {
-        await db.execute('ALTER TABLE messages ADD COLUMN signature TEXT;');
-      } catch (_) {}
-      try {
-        await db.execute(
-          'ALTER TABLE messages ADD COLUMN deviceSenderPublicKey TEXT;',
-        );
-      } catch (_) {}
-      try {
-        await db.execute('ALTER TABLE messages ADD COLUMN triage TEXT;');
-      } catch (_) {}
-    }
+      if (oldVersion < 3) {
+        // P1-5: track rescuer acknowledgement state per message.
+        try {
+          await db.execute('ALTER TABLE messages ADD COLUMN ackStatus TEXT;');
+        } catch (_) {}
+      }
+      if (oldVersion < 4) {
+        // P2-11: ed25519 signature + sender public key fields, and P2-7
+        // on-device triage blob. All nullable; v1/v2 rows stay valid.
+        try {
+          await db.execute('ALTER TABLE messages ADD COLUMN signature TEXT;');
+        } catch (_) {}
+        try {
+          await db.execute(
+            'ALTER TABLE messages ADD COLUMN deviceSenderPublicKey TEXT;',
+          );
+        } catch (_) {}
+        try {
+          await db.execute('ALTER TABLE messages ADD COLUMN triage TEXT;');
+        } catch (_) {}
+      }
     }
   }
 
   Future<void> deleteDb() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'app.db');
-    
+
     if (_database != null && _database!.isOpen) {
       await _database!.close();
     }
-    
+
     await deleteDatabase(path);
-    _database = null; 
+    _database = null;
   }
-} 
+}

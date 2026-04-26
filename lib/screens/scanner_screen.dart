@@ -23,26 +23,30 @@ class _ScannerScreenState extends State<ScannerScreen> {
     super.dispose();
   }
 
-   void _onDetect(BarcodeCapture capture) async {
+  void _onDetect(BarcodeCapture capture) async {
     final List<Barcode> barcodes = capture.barcodes;
-    
+
     for (final barcode in barcodes) {
       final token = barcode.rawValue;
       if (token != null) {
-        print('Raw Scanned Data: $token'); 
-        
+        print('Raw Scanned Data: $token');
+
         controller.stop();
         setState(() => isScanning = false);
 
         bool isValid = await AuthService.verifyAndSaveToken(token);
-        
+
         if (isValid) {
           // Change the dashboard to rescuer
           AppState().role.value = UserRole.rescuer;
-          
+
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Login Successful! ✅ Switched to Rescuer Dashboard')),
+              const SnackBar(
+                content: Text(
+                  'Login Successful! ✅ Switched to Rescuer Dashboard',
+                ),
+              ),
             );
             // Go back to the main dashboard
             Navigator.of(context).pop(true);
@@ -68,10 +72,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         backgroundColor: BeaconColors.background,
         elevation: 0,
       ),
-      body: MobileScanner(
-        controller: controller,
-        onDetect: _onDetect,
-      ),
+      body: MobileScanner(controller: controller, onDetect: _onDetect),
     );
   }
 }

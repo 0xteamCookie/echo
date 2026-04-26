@@ -19,22 +19,40 @@ class _SosScreenState extends State<SosScreen> with TickerProviderStateMixin {
   late AnimationController _rippleAnim;
 
   final List<Map<String, dynamic>> _departments = [
-    {'name': 'Rescue',  'icon': Icons.support_rounded,               'color': const Color(0xFFD96B45)},
-    {'name': 'Medical', 'icon': Icons.medical_services_rounded,      'color': const Color(0xFFE8A87C)},
-    {'name': 'Fire',    'icon': Icons.local_fire_department_rounded, 'color': const Color(0xFFE65C5C)},
-    {'name': 'Police',  'icon': Icons.local_police_rounded,          'color': const Color(0xFF5C8AE6)},
+    {
+      'name': 'Rescue',
+      'icon': Icons.support_rounded,
+      'color': const Color(0xFFD96B45),
+    },
+    {
+      'name': 'Medical',
+      'icon': Icons.medical_services_rounded,
+      'color': const Color(0xFFE8A87C),
+    },
+    {
+      'name': 'Fire',
+      'icon': Icons.local_fire_department_rounded,
+      'color': const Color(0xFFE65C5C),
+    },
+    {
+      'name': 'Police',
+      'icon': Icons.local_police_rounded,
+      'color': const Color(0xFF5C8AE6),
+    },
   ];
 
   @override
   void initState() {
     super.initState();
     _rippleAnim = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 2000));
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
   }
 
   void _startRipple() {
     _rippleAnim.forward(from: 0.0).then((_) {
-      if (mounted) _rippleAnim.repeat(); 
+      if (mounted) _rippleAnim.repeat();
     });
   }
 
@@ -94,7 +112,7 @@ class _SosScreenState extends State<SosScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0EB), 
+      backgroundColor: const Color(0xFFF5F0EB),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Column(
@@ -118,7 +136,10 @@ class _SosScreenState extends State<SosScreen> with TickerProviderStateMixin {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFF0EB).withOpacity(0.92),
                         borderRadius: BorderRadius.circular(20),
@@ -164,14 +185,14 @@ class _SosScreenState extends State<SosScreen> with TickerProviderStateMixin {
 
 class _RadarPainter extends CustomPainter {
   final bool isBroadcasting;
-  final double progress; 
+  final double progress;
 
   _RadarPainter({required this.isBroadcasting, required this.progress});
 
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
-    final cy = size.height / 2; 
+    final cy = size.height / 2;
     final center = Offset(cx, cy);
     final maxRadius = size.width * 0.45;
 
@@ -179,7 +200,7 @@ class _RadarPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
       ..color = const Color(0xFFD96B45).withOpacity(0.04);
-    
+
     canvas.drawCircle(center, maxRadius * 0.4, bgPaint);
     canvas.drawCircle(center, maxRadius * 0.8, bgPaint);
 
@@ -191,41 +212,37 @@ class _RadarPainter extends CustomPainter {
     }
 
     // ── The Center Beacon Icon ──
-    final baseColor = isBroadcasting ? const Color(0xFFD96B45) : const Color(0xFFB07A55);
+    final baseColor = isBroadcasting
+        ? const Color(0xFFD96B45)
+        : const Color(0xFFB07A55);
 
     // Outer soft glow
     canvas.drawCircle(
-      center, 
-      36, 
-      Paint()..color = baseColor.withOpacity(isBroadcasting ? 0.15 : 0.08)
+      center,
+      36,
+      Paint()..color = baseColor.withOpacity(isBroadcasting ? 0.15 : 0.08),
     );
     // Mid ring
     canvas.drawCircle(
-      center, 
-      24, 
-      Paint()..color = baseColor.withOpacity(isBroadcasting ? 0.3 : 0.2)
+      center,
+      24,
+      Paint()..color = baseColor.withOpacity(isBroadcasting ? 0.3 : 0.2),
     );
     // Core dot
-    canvas.drawCircle(
-      center, 
-      12, 
-      Paint()..color = baseColor
-    );
+    canvas.drawCircle(center, 12, Paint()..color = baseColor);
     // Inner light
-    canvas.drawCircle(
-      center, 
-      4, 
-      Paint()..color = Colors.white
-    );
+    canvas.drawCircle(center, 4, Paint()..color = Colors.white);
   }
 
   void _drawRipple(Canvas canvas, Offset center, double t, double maxRadius) {
     final radius = maxRadius * t;
     final opacity = 1.0 - t; // Fades out as it gets larger
-    
+
     final ripplePaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0 + (2.0 * (1 - t)) // Slightly thicker near the center
+      ..strokeWidth =
+          2.0 +
+          (2.0 * (1 - t)) // Slightly thicker near the center
       ..color = const Color(0xFFD96B45).withOpacity(opacity * 0.6);
 
     canvas.drawCircle(center, radius, ripplePaint);
@@ -233,9 +250,9 @@ class _RadarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RadarPainter oldDelegate) =>
-      oldDelegate.isBroadcasting != isBroadcasting || oldDelegate.progress != progress;
+      oldDelegate.isBroadcasting != isBroadcasting ||
+      oldDelegate.progress != progress;
 }
-
 
 class _BroadcastPanel extends StatelessWidget {
   final List<Map<String, dynamic>> departments;
@@ -294,10 +311,10 @@ class _BroadcastPanel extends StatelessWidget {
               children: [
                 Row(
                   children: List.generate(departments.length, (i) {
-                    final dept      = departments[i];
+                    final dept = departments[i];
                     final isSelected = selectedDept == dept['name'];
-                    final baseColor  = dept['color'] as Color;
-                    final isLast     = i == departments.length - 1;
+                    final baseColor = dept['color'] as Color;
+                    final isLast = i == departments.length - 1;
                     return Expanded(
                       child: GestureDetector(
                         onTap: () => onDeptChanged(dept['name'] as String),

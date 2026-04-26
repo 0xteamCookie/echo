@@ -229,11 +229,7 @@ Map<String, dynamic>? decodePacket(String raw) {
 /// of `ack` / `enroute` / `resolved` (rescuer report flow).
 /// Legacy 3-field `ACK||<messageId>||<relayerId>` frames are still accepted
 /// by [decodeAck] so older peers stay compatible.
-String encodeAck(
-  String messageId,
-  String relayerId, {
-  String status = 'ack',
-}) =>
+String encodeAck(String messageId, String relayerId, {String status = 'ack'}) =>
     'ACK$_delim$messageId$_delim$relayerId$_delim$status';
 
 /// Parse an ACK control frame. Returns `null` if [raw] is not an ACK or is

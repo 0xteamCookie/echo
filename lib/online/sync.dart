@@ -31,7 +31,7 @@ Map<String, dynamic> parseLocation(dynamic location) {
       if (parts.length == 2) {
         return {
           "lat": double.tryParse(parts[0].trim()),
-          "lon": double.tryParse(parts[1].trim())
+          "lon": double.tryParse(parts[1].trim()),
         };
       }
     } catch (_) {}
@@ -45,24 +45,20 @@ Map<String, dynamic> mapToApiPayload(Map<String, dynamic> msg) {
     "messageId": msg["messageId"],
     "message": msg["message"],
     "time": msg["time"],
-    "gps": msg["location"] != null
-        ? parseLocation(msg["location"])
-        : null,
+    "gps": msg["location"] != null ? parseLocation(msg["location"]) : null,
     "meta": {
       "senderName": msg["senderName"],
       "isSos": msg["isSos"],
       "hopCount": msg["hopCount"] ?? 0,
       "messageId": msg["messageId"],
-    }
+    },
   };
 }
 
 Uri _ingestUri() => Uri.parse('$_apiBaseUrl/api/data');
 
 Map<String, String> _ingestHeaders() {
-  final headers = <String, String>{
-    'Content-Type': 'application/json',
-  };
+  final headers = <String, String>{'Content-Type': 'application/json'};
   if (_ingestToken.isNotEmpty) {
     headers['Authorization'] = 'Bearer $_ingestToken';
   }

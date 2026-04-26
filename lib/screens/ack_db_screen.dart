@@ -32,14 +32,16 @@ class _AckDbScreenState extends State<AckDbScreen> {
         backgroundColor: const Color(0xFFF9F6F0),
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAcks,
-          )
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAcks),
         ],
       ),
       body: _acks.isEmpty
-          ? const Center(child: Text("Ack Database is empty.", style: TextStyle(color: Colors.black38)))
+          ? const Center(
+              child: Text(
+                "Ack Database is empty.",
+                style: TextStyle(color: Colors.black38),
+              ),
+            )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: _acks.length,
@@ -51,14 +53,30 @@ class _AckDbScreenState extends State<AckDbScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("MsgID: ${ack['messageId']}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        "MsgID: ${ack['messageId']}",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(height: 4),
-                      Text("Device / MAC: ${ack['deviceId']}", style: const TextStyle(fontFamily: 'monospace', fontSize: 13, color: Colors.black87)),
+                      Text(
+                        "Device / MAC: ${ack['deviceId']}",
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 13,
+                          color: Colors.black87,
+                        ),
+                      ),
                     ],
                   ),
                 );

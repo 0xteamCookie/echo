@@ -35,11 +35,12 @@ const Duration _countdownDuration = kFallCountdownDuration;
 /// Callback used by the UI to surface the 30-second cancellable countdown.
 /// [onCancel] cancels the pending auto-SOS; [onConfirm] skips the countdown
 /// and sends immediately. Implementations should show a modal/banner.
-typedef FallWarningHandler = void Function({
-  required Duration countdown,
-  required VoidCallback onCancel,
-  required VoidCallback onConfirm,
-});
+typedef FallWarningHandler =
+    void Function({
+      required Duration countdown,
+      required VoidCallback onCancel,
+      required VoidCallback onConfirm,
+    });
 
 /// Called when the countdown elapses without a cancel → fire the SOS. The
 /// implementation is wired to `sendSosHeartbeat` from `send_heartbeat.dart`
@@ -89,11 +90,15 @@ class ActivityMonitor {
     if (_accelSub != null) return;
 
     try {
-      _accelSub = userAccelerometerEventStream(
-        samplingPeriod: const Duration(milliseconds: 100),
-      ).listen(_onAccel, onError: (Object e, _) {
-        debugPrint('[ActivityMonitor] accel stream error: $e');
-      });
+      _accelSub =
+          userAccelerometerEventStream(
+            samplingPeriod: const Duration(milliseconds: 100),
+          ).listen(
+            _onAccel,
+            onError: (Object e, _) {
+              debugPrint('[ActivityMonitor] accel stream error: $e');
+            },
+          );
       debugPrint('[ActivityMonitor] started');
     } catch (e) {
       debugPrint('[ActivityMonitor] start failed: $e');
@@ -183,8 +188,9 @@ class ActivityMonitor {
       debugPrint('[ActivityMonitor] no SOS trigger wired — skipping auto-SOS');
       return;
     }
-    trigger('Auto-SOS: possible fall detected. No response from user.')
-        .catchError((Object e, _) {
+    trigger(
+      'Auto-SOS: possible fall detected. No response from user.',
+    ).catchError((Object e, _) {
       debugPrint('[ActivityMonitor] auto-SOS failed: $e');
     });
   }

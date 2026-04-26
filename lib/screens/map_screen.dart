@@ -56,8 +56,7 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     await _updateConnectivity();
-    _connectivitySub =
-        Connectivity().onConnectivityChanged.listen((results) {
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
       final online = results.any((r) => r != ConnectivityResult.none);
       if (mounted && online != _isOnline) {
         setState(() => _isOnline = online);
@@ -115,7 +114,9 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _downloadMap() async {
     setState(() => _isDownloading = true);
     await OfflineMapManager.downloadMapArea(
-        _center.latitude, _center.longitude);
+      _center.latitude,
+      _center.longitude,
+    );
     setState(() => _isDownloading = false);
 
     if (mounted) {
@@ -135,10 +136,7 @@ class _MapScreenState extends State<MapScreen> {
       appBar: AppBar(
         title: const Text("Mesh Map"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.my_location),
-            onPressed: _recenter,
-          ),
+          IconButton(icon: const Icon(Icons.my_location), onPressed: _recenter),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () async {
@@ -151,7 +149,8 @@ class _MapScreenState extends State<MapScreen> {
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Icon(Icons.download),
             onPressed: _isDownloading ? null : _downloadMap,
           ),
@@ -222,17 +221,21 @@ class FileTileProvider extends TileProvider {
 
   @override
   ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
-    final file = File(basePath
-        .replaceAll('{z}', coordinates.z.toString())
-        .replaceAll('{x}', coordinates.x.toString())
-        .replaceAll('{y}', coordinates.y.toString()));
+    final file = File(
+      basePath
+          .replaceAll('{z}', coordinates.z.toString())
+          .replaceAll('{x}', coordinates.x.toString())
+          .replaceAll('{y}', coordinates.y.toString()),
+    );
 
     if (file.existsSync()) {
       return FileImage(file);
     }
-    return NetworkImage(options.urlTemplate!
-        .replaceAll('{z}', coordinates.z.toString())
-        .replaceAll('{x}', coordinates.x.toString())
-        .replaceAll('{y}', coordinates.y.toString()));
+    return NetworkImage(
+      options.urlTemplate!
+          .replaceAll('{z}', coordinates.z.toString())
+          .replaceAll('{x}', coordinates.x.toString())
+          .replaceAll('{y}', coordinates.y.toString()),
+    );
   }
 }

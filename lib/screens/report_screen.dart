@@ -98,19 +98,25 @@ class _ReportScreenState extends State<ReportScreen> {
           {
             'messageId': 'dummy-1',
             'senderName': 'Jane Doe',
-            'message': 'I have fallen and cannot get up. Need medical assistance.',
-            'time': DateTime.now().subtract(const Duration(minutes: 12)).toIso8601String(),
+            'message':
+                'I have fallen and cannot get up. Need medical assistance.',
+            'time': DateTime.now()
+                .subtract(const Duration(minutes: 12))
+                .toIso8601String(),
             'location': '34.0522,-118.2437',
             'ackStatus': 'ack',
           },
           {
             'messageId': 'dummy-2',
             'senderName': 'John Smith',
-            'message': 'Stranded due to severe flooding, need immediate rescue.',
-            'time': DateTime.now().subtract(const Duration(minutes: 2)).toIso8601String(),
+            'message':
+                'Stranded due to severe flooding, need immediate rescue.',
+            'time': DateTime.now()
+                .subtract(const Duration(minutes: 2))
+                .toIso8601String(),
             'location': '34.0525,-118.2430',
             'ackStatus': null,
-          }
+          },
         ]);
       }
 
@@ -120,10 +126,7 @@ class _ReportScreenState extends State<ReportScreen> {
     }
   }
 
-  Future<void> _setStatus(
-    Map<String, dynamic> row,
-    String status,
-  ) async {
+  Future<void> _setStatus(Map<String, dynamic> row, String status) async {
     if (_broadcasting) return;
     final messageId = row['messageId']?.toString();
     if (messageId == null || messageId.isEmpty) return;
@@ -145,9 +148,9 @@ class _ReportScreenState extends State<ReportScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Broadcast failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Broadcast failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _broadcasting = false);
@@ -170,21 +173,21 @@ class _ReportScreenState extends State<ReportScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _incidents.isEmpty
-              ? _EmptyState(onRefresh: _loadIncidents)
-              : RefreshIndicator(
-                  onRefresh: _loadIncidents,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: _incidents.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (context, i) => _IncidentCard(
-                      row: _incidents[i],
-                      myLoc: _myLoc,
-                      onStatus: _setStatus,
-                      busy: _broadcasting,
-                    ),
-                  ),
+          ? _EmptyState(onRefresh: _loadIncidents)
+          : RefreshIndicator(
+              onRefresh: _loadIncidents,
+              child: ListView.separated(
+                padding: const EdgeInsets.all(12),
+                itemCount: _incidents.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, i) => _IncidentCard(
+                  row: _incidents[i],
+                  myLoc: _myLoc,
+                  onStatus: _setStatus,
+                  busy: _broadcasting,
                 ),
+              ),
+            ),
     );
   }
 
@@ -217,7 +220,8 @@ double haversineMeters(double lat1, double lng1, double lat2, double lng2) {
   const r = kEarthRadiusMetres;
   final dLat = (lat2 - lat1) * math.pi / 180.0;
   final dLng = (lng2 - lng1) * math.pi / 180.0;
-  final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+  final a =
+      math.sin(dLat / 2) * math.sin(dLat / 2) +
       math.sin(dLng / 2) *
           math.sin(dLng / 2) *
           math.cos(lat1 * math.pi / 180.0) *
@@ -230,8 +234,7 @@ double haversineMeters(double lat1, double lng1, double lat2, double lng2) {
 class _IncidentCard extends StatelessWidget {
   final Map<String, dynamic> row;
   final ({double lat, double lng})? myLoc;
-  final Future<void> Function(Map<String, dynamic> row, String status)
-      onStatus;
+  final Future<void> Function(Map<String, dynamic> row, String status) onStatus;
   final bool busy;
 
   const _IncidentCard({
@@ -245,8 +248,8 @@ class _IncidentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final senderName =
         (row['senderName']?.toString().trim().isNotEmpty ?? false)
-            ? row['senderName'].toString()
-            : 'Unknown';
+        ? row['senderName'].toString()
+        : 'Unknown';
     final message = row['message']?.toString() ?? '';
     final timeStr = _formatTime(row['time']?.toString());
     final distLabel = _distanceLabel(row['location']?.toString(), myLoc);
@@ -488,8 +491,11 @@ class _EmptyState extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                Icon(Icons.inbox_outlined,
-                    size: 48, color: BeaconColors.textLight),
+                Icon(
+                  Icons.inbox_outlined,
+                  size: 48,
+                  color: BeaconColors.textLight,
+                ),
                 SizedBox(height: 12),
                 Text(
                   'No recent incidents in your zone.',

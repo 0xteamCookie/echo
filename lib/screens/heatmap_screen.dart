@@ -79,8 +79,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
     _tilePath = '${dir.path}/offline_tiles/{z}/{x}/{y}.png';
 
     await _updateConnectivity();
-    _connectivitySub =
-        Connectivity().onConnectivityChanged.listen((results) {
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
       final online = results.any((r) => r != ConnectivityResult.none);
       if (mounted && online != _isOnline) {
         setState(() => _isOnline = online);
@@ -208,7 +207,8 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
     final dLng = (b.longitude - a.longitude) * math.pi / 180.0;
     final lat1 = a.latitude * math.pi / 180.0;
     final lat2 = b.latitude * math.pi / 180.0;
-    final h = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final h =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.sin(dLng / 2) *
             math.sin(dLng / 2) *
             math.cos(lat1) *
@@ -228,7 +228,8 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-                content: Text('7km low-res map downloaded around you!')),
+              content: Text('7km low-res map downloaded around you!'),
+            ),
           );
         }
       } else {
@@ -240,9 +241,9 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -277,9 +278,9 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
       _moveMapTo(LatLng(lat, lng), 15.0);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -390,8 +391,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
             if (_clusters.isNotEmpty)
               CircleLayer(
                 circles: _clusters.map((c) {
-                  final radiusM =
-                      25.0 + 12.0 * math.sqrt(c.count.toDouble());
+                  final radiusM = 25.0 + 12.0 * math.sqrt(c.count.toDouble());
                   final opacity = math.min(0.75, 0.25 + 0.1 * c.count);
                   return CircleMarker(
                     point: c.center,
@@ -459,12 +459,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
           ],
         ),
         if (!_isOnline)
-          const Positioned(
-            top: 8,
-            left: 8,
-            right: 8,
-            child: _OfflineBanner(),
-          ),
+          const Positioned(top: 8, left: 8, right: 8, child: _OfflineBanner()),
         Positioned(
           bottom: 16,
           left: 16,
@@ -650,4 +645,3 @@ class _OfflineBanner extends StatelessWidget {
     );
   }
 }
-

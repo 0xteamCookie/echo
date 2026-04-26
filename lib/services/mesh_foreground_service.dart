@@ -73,7 +73,8 @@ class MeshForegroundService {
       ),
     );
 
-    final permission = await FlutterForegroundTask.checkNotificationPermission();
+    final permission =
+        await FlutterForegroundTask.checkNotificationPermission();
     if (permission != NotificationPermission.granted) {
       await FlutterForegroundTask.requestNotificationPermission();
     }

@@ -8,10 +8,14 @@ import '../core/constants.dart';
 // ─── UUIDs
 final Guid targetServiceUuid = Guid(kServiceUuid);
 final Guid targetCharacteristicUuid = Guid(kCharacteristicUuid);
-final String _targetServiceUuidLower = targetServiceUuid.toString().toLowerCase();
-final String _targetCharUuidLower = targetCharacteristicUuid.toString().toLowerCase();
+final String _targetServiceUuidLower = targetServiceUuid
+    .toString()
+    .toLowerCase();
+final String _targetCharUuidLower = targetCharacteristicUuid
+    .toString()
+    .toLowerCase();
 
-// ─── Callbacks & State 
+// ─── Callbacks & State
 final Map<String, Map<String, dynamic>> _seenDevices = {};
 
 // P3-5: prune devices not seen in the last kSeenDeviceTtl so the relay list stays fresh.
@@ -25,12 +29,14 @@ bool _adapterListenerAttached = false;
 Timer? _scanResultThrottleTimer;
 bool _scanResultDirty = false;
 
-final StreamController<List<Map<String, dynamic>>> _deviceStreamController = StreamController.broadcast();
-Stream<List<Map<String, dynamic>>> get scanResultsStream => _deviceStreamController.stream;
-    
+final StreamController<List<Map<String, dynamic>>> _deviceStreamController =
+    StreamController.broadcast();
+Stream<List<Map<String, dynamic>>> get scanResultsStream =>
+    _deviceStreamController.stream;
+
 Function(List<Map<String, dynamic>> devices)? onDeviceListUpdated;
 
-// ─── Permissions 
+// ─── Permissions
 Future<void> requestClientPermissions() async {
   await [
     Permission.bluetoothScan,
@@ -87,7 +93,7 @@ Future<void> restartScan() async {
 
 Future<void> _startScan() async {
   if (_isScanning) return;
-  
+
   if (FlutterBluePlus.adapterStateNow != BluetoothAdapterState.on) {
     print("⚠️ [_startScan] Aborting: Bluetooth is not ON.");
     return;
@@ -112,20 +118,24 @@ Future<void> _startScan() async {
   }
 
   // Hook to restart scanning after timeout
-  FlutterBluePlus.isScanning.where((s) => s == false).first.then((_) {
-    _isScanning = false;
-    if (!_scanLoopScheduled) {
-      _scanLoopScheduled = true;
-      Future.delayed(const Duration(seconds: 2), () {
-        _scanLoopScheduled = false;
-        if (FlutterBluePlus.adapterStateNow == BluetoothAdapterState.on) {
-          _startScan();
+  FlutterBluePlus.isScanning
+      .where((s) => s == false)
+      .first
+      .then((_) {
+        _isScanning = false;
+        if (!_scanLoopScheduled) {
+          _scanLoopScheduled = true;
+          Future.delayed(const Duration(seconds: 2), () {
+            _scanLoopScheduled = false;
+            if (FlutterBluePlus.adapterStateNow == BluetoothAdapterState.on) {
+              _startScan();
+            }
+          });
         }
+      })
+      .catchError((_) {
+        _isScanning = false;
       });
-    }
-  }).catchError((_) {
-    _isScanning = false;
-  });
 }
 
 void _onScanResult(List<ScanResult> results) {
@@ -156,7 +166,10 @@ void _onScanResult(List<ScanResult> results) {
   }
 
   _scanResultDirty = true;
-  _scanResultThrottleTimer ??= Timer(const Duration(milliseconds: 500), _flushScanResults);
+  _scanResultThrottleTimer ??= Timer(
+    const Duration(milliseconds: 500),
+    _flushScanResults,
+  );
 }
 
 void _flushScanResults() {
@@ -178,12 +191,13 @@ List<Map<String, dynamic>> getCurrentScanResults() {
 /// haven't heard from in 5+ minutes.
 void _pruneSeenDevices() {
   if (_seenDevices.isEmpty) return;
-  final cutoff =
-      DateTime.now().subtract(_seenDeviceTtl).millisecondsSinceEpoch;
+  final cutoff = DateTime.now().subtract(_seenDeviceTtl).millisecondsSinceEpoch;
   final stale = <String>[];
   _seenDevices.forEach((id, dev) {
     final ls = dev['lastSeen'];
-    final lastSeenMs = (ls is int) ? ls : int.tryParse((ls ?? '0').toString()) ?? 0;
+    final lastSeenMs = (ls is int)
+        ? ls
+        : int.tryParse((ls ?? '0').toString()) ?? 0;
     if (lastSeenMs < cutoff) stale.add(id);
   });
   if (stale.isEmpty) return;
@@ -215,7 +229,7 @@ Future<bool> dispatchPayloadToDevice(
     // 1. Connect temporarily with a short timeout
     await device.connect(
       autoConnect: false,
-      license: License.free, 
+      license: License.free,
       timeout: const Duration(seconds: 4),
     );
 
@@ -226,16 +240,19 @@ Future<bool> dispatchPayloadToDevice(
       if (service.uuid.toString().toLowerCase() == _targetServiceUuidLower) {
         for (var char in service.characteristics) {
           if (char.uuid.toString().toLowerCase() == _targetCharUuidLower) {
-            
             // 3. Dynamically check what the cached property allows
             bool canWriteNoResponse = char.properties.writeWithoutResponse;
             bool canWrite = char.properties.write;
 
             if (canWriteNoResponse || canWrite) {
               await char.write(payloadBytes, withoutResponse: true);
-              print("✅ [dispatchPayload] SUCCESS: Transmitted ${payloadBytes.length} bytes to $deviceId!");
+              print(
+                "✅ [dispatchPayload] SUCCESS: Transmitted ${payloadBytes.length} bytes to $deviceId!",
+              );
             } else {
-              print("❌ [dispatchPayload] FAILED: Characteristic lacks write properties on $deviceId");
+              print(
+                "❌ [dispatchPayload] FAILED: Characteristic lacks write properties on $deviceId",
+              );
             }
 
             // Delay to let the radio buffer flush down to the hardware
@@ -249,7 +266,9 @@ Future<bool> dispatchPayloadToDevice(
       }
     }
 
-    print("❌ [dispatchPayload] FAILED: Target characteristic not found on $deviceId");
+    print(
+      "❌ [dispatchPayload] FAILED: Target characteristic not found on $deviceId",
+    );
     await device.disconnect();
     return false;
   } catch (e) {

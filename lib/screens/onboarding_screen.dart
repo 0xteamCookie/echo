@@ -26,12 +26,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     final totalPages = _selectedRole == UserRole.rescuer ? 4 : 3;
 
-    if (_selectedRole == UserRole.rescuer && _currentPage == 2 && !_rescuerAuthenticated) {
+    if (_selectedRole == UserRole.rescuer &&
+        _currentPage == 2 &&
+        !_rescuerAuthenticated) {
       // Must authenticate before proceeding from the Auth page
       _scanRescuerToken();
       return;
     }
-    
+
     if (_currentPage < totalPages - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -82,7 +84,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(kPrefHasCompletedOnboarding, true);
-    
+
     if (_nameController.text.trim().isNotEmpty) {
       await UserSettings.setName(_nameController.text.trim());
     }
@@ -111,7 +113,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Expanded(
               child: PageView(
                 controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(), // Prevent swipe to skip validation
+                physics:
+                    const NeverScrollableScrollPhysics(), // Prevent swipe to skip validation
                 onPageChanged: (index) {
                   setState(() {
                     _currentPage = index;
@@ -143,7 +146,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.satellite_alt_rounded, size: 80, color: BeaconColors.primary),
+          const Icon(
+            Icons.satellite_alt_rounded,
+            size: 80,
+            color: BeaconColors.primary,
+          ),
           const SizedBox(height: 24),
           const Text(
             'Welcome to Beacon',
@@ -163,7 +170,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 48),
           _RoleCard(
             title: 'Civilian / Need Help',
-            description: 'I want to ask for help, communicate off-grid, and monitor the area.',
+            description:
+                'I want to ask for help, communicate off-grid, and monitor the area.',
             icon: Icons.person_rounded,
             isSelected: _selectedRole == UserRole.user,
             onTap: () {
@@ -174,7 +182,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 16),
           _RoleCard(
             title: 'First Responder',
-            description: 'I want to receive alerts, locate victims, and coordinate rescue missions.',
+            description:
+                'I want to receive alerts, locate victims, and coordinate rescue missions.',
             icon: Icons.local_police_rounded,
             isSelected: _selectedRole == UserRole.rescuer,
             onTap: () {
@@ -194,7 +203,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.badge_rounded, size: 80, color: BeaconColors.primary),
+          const Icon(
+            Icons.badge_rounded,
+            size: 80,
+            color: BeaconColors.primary,
+          ),
           const SizedBox(height: 24),
           const Text(
             'What should we call you?',
@@ -233,7 +246,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.qr_code_scanner_rounded, size: 80, color: BeaconColors.primary),
+          const Icon(
+            Icons.qr_code_scanner_rounded,
+            size: 80,
+            color: BeaconColors.primary,
+          ),
           const SizedBox(height: 24),
           const Text(
             'Rescuer Authentication',
@@ -258,7 +275,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 SizedBox(height: 16),
                 Text(
                   'Authentication verified!',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
                 ),
               ],
             )
@@ -271,8 +292,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 backgroundColor: BeaconColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                textStyle: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
         ],
@@ -284,10 +310,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return _buildTourLayout(
       title: 'How to use Beacon',
       features: const [
-        _FeatureSpec(icon: Icons.sos_rounded, title: 'Request Help', text: 'Use the SOS button on the main screen to alert nearby responders.'),
-        _FeatureSpec(icon: Icons.home_rounded, title: 'Home', text: 'View important announcements from nearby responders and authorities.'),
-        _FeatureSpec(icon: Icons.chat_bubble_rounded, title: 'Off-grid Chat', text: 'Chat with people around you without internet or cell service.'),
-        _FeatureSpec(icon: Icons.map_rounded, title: 'Offline Maps', text: 'View users in your area directly on your device.'),
+        _FeatureSpec(
+          icon: Icons.sos_rounded,
+          title: 'Request Help',
+          text:
+              'Use the SOS button on the main screen to alert nearby responders.',
+        ),
+        _FeatureSpec(
+          icon: Icons.home_rounded,
+          title: 'Home',
+          text:
+              'View important announcements from nearby responders and authorities.',
+        ),
+        _FeatureSpec(
+          icon: Icons.chat_bubble_rounded,
+          title: 'Off-grid Chat',
+          text: 'Chat with people around you without internet or cell service.',
+        ),
+        _FeatureSpec(
+          icon: Icons.map_rounded,
+          title: 'Offline Maps',
+          text: 'View users in your area directly on your device.',
+        ),
       ],
     );
   }
@@ -296,15 +340,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return _buildTourLayout(
       title: 'Responder Dashboard',
       features: const [
-        _FeatureSpec(icon: Icons.map_rounded, title: 'SOS Heatmap', text: 'Locate distress beacons securely over the mesh network.'),
-        _FeatureSpec(icon: Icons.home_rounded, title: 'Home', text: 'View important announcements from nearby responders and authorities.'),
-        _FeatureSpec(icon: Icons.chat_bubble_rounded, title: 'Coordination', text: 'Chat with other responders and civilians in the local mesh.'),
-        _FeatureSpec(icon: Icons.assessment_rounded, title: 'Reports', text: 'View incident logs and real-time mesh activity.'),
+        _FeatureSpec(
+          icon: Icons.map_rounded,
+          title: 'SOS Heatmap',
+          text: 'Locate distress beacons securely over the mesh network.',
+        ),
+        _FeatureSpec(
+          icon: Icons.home_rounded,
+          title: 'Home',
+          text:
+              'View important announcements from nearby responders and authorities.',
+        ),
+        _FeatureSpec(
+          icon: Icons.chat_bubble_rounded,
+          title: 'Coordination',
+          text: 'Chat with other responders and civilians in the local mesh.',
+        ),
+        _FeatureSpec(
+          icon: Icons.assessment_rounded,
+          title: 'Reports',
+          text: 'View incident logs and real-time mesh activity.',
+        ),
       ],
     );
   }
 
-  Widget _buildTourLayout({required String title, required List<_FeatureSpec> features}) {
+  Widget _buildTourLayout({
+    required String title,
+    required List<_FeatureSpec> features,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -321,32 +385,47 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          ...features.map((f) => Padding(
-            padding: const EdgeInsets.only(bottom: 24.0),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: BeaconColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
+          ...features.map(
+            (f) => Padding(
+              padding: const EdgeInsets.only(bottom: 24.0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: BeaconColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(f.icon, color: BeaconColors.primary, size: 32),
                   ),
-                  child: Icon(f.icon, color: BeaconColors.primary, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(f.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: BeaconColors.textDark)),
-                      const SizedBox(height: 4),
-                      Text(f.text, style: const TextStyle(fontSize: 14, color: BeaconColors.textMid)),
-                    ],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          f.title,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: BeaconColors.textDark,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          f.text,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: BeaconColors.textMid,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          )),
+          ),
         ],
       ),
     );
@@ -355,8 +434,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildBottomControls() {
     bool canProceed = true;
     if (_currentPage == 0 && _selectedRole == null) canProceed = false;
-    if (_currentPage == 1 && _nameController.text.trim().isEmpty) canProceed = false;
-    
+    if (_currentPage == 1 && _nameController.text.trim().isEmpty)
+      canProceed = false;
+
     // We only have 3 pages for User/Victim, and 4 pages for Rescuer.
     // Let's cap _currentPage accordingly if we used length.
     final totalPages = _selectedRole == UserRole.rescuer ? 4 : 3;
@@ -370,7 +450,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           if (_currentPage > 0)
             TextButton(
               onPressed: _previousPage,
-              child: const Text('Back', style: TextStyle(color: BeaconColors.textMid, fontSize: 16)),
+              child: const Text(
+                'Back',
+                style: TextStyle(color: BeaconColors.textMid, fontSize: 16),
+              ),
             )
           else
             const SizedBox(width: 60),
@@ -384,7 +467,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _currentPage == index ? BeaconColors.primary : BeaconColors.cardBorder,
+                  color: _currentPage == index
+                      ? BeaconColors.primary
+                      : BeaconColors.cardBorder,
                 ),
               );
             }),
@@ -396,7 +481,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               backgroundColor: BeaconColors.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
             child: Text(
               isLastPage ? 'Let\'s Go!' : 'Next',
@@ -432,7 +519,9 @@ class _RoleCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? BeaconColors.primary.withOpacity(0.05) : BeaconColors.surface,
+          color: isSelected
+              ? BeaconColors.primary.withOpacity(0.05)
+              : BeaconColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? BeaconColors.primary : BeaconColors.cardBorder,
@@ -444,10 +533,15 @@ class _RoleCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isSelected ? BeaconColors.primary : BeaconColors.background,
+                color: isSelected
+                    ? BeaconColors.primary
+                    : BeaconColors.background,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: isSelected ? Colors.white : BeaconColors.textMid),
+              child: Icon(
+                icon,
+                color: isSelected ? Colors.white : BeaconColors.textMid,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -459,13 +553,18 @@ class _RoleCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? BeaconColors.primary : BeaconColors.textDark,
+                      color: isSelected
+                          ? BeaconColors.primary
+                          : BeaconColors.textDark,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     description,
-                    style: const TextStyle(fontSize: 14, color: BeaconColors.textMid),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: BeaconColors.textMid,
+                    ),
                   ),
                 ],
               ),
@@ -482,5 +581,9 @@ class _FeatureSpec {
   final String title;
   final String text;
 
-  const _FeatureSpec({required this.icon, required this.title, required this.text});
+  const _FeatureSpec({
+    required this.icon,
+    required this.title,
+    required this.text,
+  });
 }

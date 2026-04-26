@@ -21,9 +21,12 @@ List<LatLng> buildGeoCircle(LatLng center, double radiusM, {int points = 72}) {
   for (int i = 0; i <= points; i++) {
     final double bearing = 2 * pi * i / points;
 
-    final double lat2 =
-        asin(sin(lat1) * cos(angularDist) + cos(lat1) * sin(angularDist) * cos(bearing));
-    final double lng2 = lng1 +
+    final double lat2 = asin(
+      sin(lat1) * cos(angularDist) +
+          cos(lat1) * sin(angularDist) * cos(bearing),
+    );
+    final double lng2 =
+        lng1 +
         atan2(
           sin(bearing) * sin(angularDist) * cos(lat1),
           cos(angularDist) - sin(lat1) * sin(lat2),

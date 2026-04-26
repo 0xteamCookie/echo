@@ -6,7 +6,10 @@ import '../core/constants.dart';
 
 const Duration messageLifespan = kMessageLifespan;
 
-Future<Map<String, dynamic>> generatePacketVariables(String message, {bool isSos = false}) async {
+Future<Map<String, dynamic>> generatePacketVariables(
+  String message, {
+  bool isSos = false,
+}) async {
   String deviceId = await DeviceIdManager.getDeviceId();
   String location = await getCurrentLocationString();
   String messageId = generateMessageId();

@@ -41,12 +41,8 @@ class TriageResult {
 
   /// Compact JSON suitable for embedding inside the `triage` packet field.
   /// Deliberately short — BLE MTU is tight.
-  String toJsonString() => jsonEncode({
-        's': source,
-        'c': categories,
-        'sv': severity,
-        'su': summary,
-      });
+  String toJsonString() =>
+      jsonEncode({'s': source, 'c': categories, 'sv': severity, 'su': summary});
 }
 
 /// Triage [message]. Returns `null` if triage should be skipped (device is
@@ -96,43 +92,77 @@ Future<bool> _isOnline() async {
 
 const Map<String, List<String>> _categoryKeywords = {
   'medical': [
-    'injur', 'bleed', 'blood', 'wound', 'broken', 'fractur', 'heart',
-    'chest pain', 'unconscious', 'breath', 'choke', 'cpr', 'medic',
-    'hospital', 'ambulance', 'hurt', 'pain',
+    'injur',
+    'bleed',
+    'blood',
+    'wound',
+    'broken',
+    'fractur',
+    'heart',
+    'chest pain',
+    'unconscious',
+    'breath',
+    'choke',
+    'cpr',
+    'medic',
+    'hospital',
+    'ambulance',
+    'hurt',
+    'pain',
   ],
-  'fire': [
-    'fire', 'burn', 'smoke', 'flame', 'blaze', 'gas leak',
-  ],
+  'fire': ['fire', 'burn', 'smoke', 'flame', 'blaze', 'gas leak'],
   'trapped': [
-    'trapped', 'stuck', 'collaps', 'rubble', 'debris', 'buried', 'pinned',
+    'trapped',
+    'stuck',
+    'collaps',
+    'rubble',
+    'debris',
+    'buried',
+    'pinned',
   ],
-  'flood': [
-    'flood', 'water', 'drown', 'submerged', 'rising water',
-  ],
+  'flood': ['flood', 'water', 'drown', 'submerged', 'rising water'],
   'structural': [
-    'building', 'wall', 'roof', 'ceiling', 'floor', 'bridge',
-    'collaps', 'crack', 'leaning',
+    'building',
+    'wall',
+    'roof',
+    'ceiling',
+    'floor',
+    'bridge',
+    'collaps',
+    'crack',
+    'leaning',
   ],
-  'security': [
-    'shoot', 'shot', 'gun', 'attack', 'assault', 'weapon', 'violen',
-  ],
-  'fall': [
-    'fall', 'fell', 'fallen',
-  ],
+  'security': ['shoot', 'shot', 'gun', 'attack', 'assault', 'weapon', 'violen'],
+  'fall': ['fall', 'fell', 'fallen'],
 };
 
 const Map<String, List<String>> _severityKeywords = {
   'critical': [
-    'dying', 'unconscious', 'not breath', 'no pulse', 'severe bleed',
-    'heart attack', 'cardiac', 'trapped', 'buried', 'drown',
+    'dying',
+    'unconscious',
+    'not breath',
+    'no pulse',
+    'severe bleed',
+    'heart attack',
+    'cardiac',
+    'trapped',
+    'buried',
+    'drown',
   ],
   'high': [
-    'bleed', 'heavy', 'serious', 'severe', 'urgent', 'asap', 'now',
-    'fracture', 'broken', 'gas leak', 'fire',
+    'bleed',
+    'heavy',
+    'serious',
+    'severe',
+    'urgent',
+    'asap',
+    'now',
+    'fracture',
+    'broken',
+    'gas leak',
+    'fire',
   ],
-  'medium': [
-    'injur', 'hurt', 'pain', 'help', 'need', 'stuck',
-  ],
+  'medium': ['injur', 'hurt', 'pain', 'help', 'need', 'stuck'],
 };
 
 TriageResult _classifyWithKeywords(String raw) {
