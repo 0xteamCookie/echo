@@ -3,17 +3,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../database/db_hook.dart';
 
-/// Backend ingest base URL — injected at build time via
-/// `--dart-define-from-file=dart-defines.json` (see .vscode/launch.json).
-/// The default points to the live backend so `flutter run` without flags
-/// also works during development.
 const String _apiBaseUrl = String.fromEnvironment(
   'BEACON_API_BASE_URL',
   defaultValue: 'https://echo-back.getmyroom.in',
 );
 
-/// Shared-secret token for the ingest endpoint. Replaced by Firebase App Check
-/// + Firebase Auth ID token in P2-3 / P2-4.
 const String _ingestToken = String.fromEnvironment(
   'BEACON_INGEST_TOKEN',
   defaultValue: '',
@@ -78,7 +72,6 @@ Future<void> sendBatch(List<Map<String, dynamic>> messages) async {
         await markAsSynced(msg["messageId"]);
       } else {
         print('Sync failed: ${response.statusCode} ${response.body}');
-        // Bail out of the batch on 4xx/5xx so we don't tight-loop.
         break;
       }
     } catch (e) {
@@ -106,6 +99,6 @@ Future<void> syncMessages() async {
 
     await sendBatch(batch);
 
-    await Future.delayed(Duration(seconds: 2)); // prevent spamming server
+    await Future.delayed(Duration(seconds: 2));
   }
 }

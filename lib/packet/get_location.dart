@@ -1,6 +1,5 @@
 import 'package:geolocator/geolocator.dart';
 
-/// (Lat, Long)
 Future<String> getCurrentLocationString() async {
   bool serviceEnabled;
   LocationPermission permission;

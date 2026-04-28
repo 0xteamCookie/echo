@@ -103,16 +103,14 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
 
     _initControllers();
 
-    // Listen to role changes to re-init controllers
+    // Listen to role changes
     AppState().role.addListener(_onRoleChanged);
   }
 
   void _onRoleChanged() {
-    // Keep current index but ensure it's within bounds
     if (_currentIndex >= _navItems.length) {
       _currentIndex = 0;
     }
-    // Re-init controllers
     for (final c in _navIconControllers) {
       c.dispose();
     }
@@ -233,7 +231,7 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
             ),
           ),
           const SizedBox(width: 10),
-          const Text('Beacon'),
+          const Text('Echo'),
         ],
       ),
       centerTitle: true,

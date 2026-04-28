@@ -5,14 +5,16 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- Required when the mesh foreground service keeps scanning while the app is backgrounded. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <!-- required foreground service keeps scanning while app is backgrounded. -->
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
-    <!-- Removed 'neverForLocation' because mesh/beacon apps rely on physical proximity -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-
-    <!-- P0-3: foreground service so relay/advertise keep running on Android 10+ when the user leaves the app. -->
+    <!-- foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
@@ -20,16 +22,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-
-    <!-- Internet for sync.dart once connectivity returns. -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- P2-14: microphone for the voice-to-text SOS mic button. -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- P2-15: `sensors_plus` reads the raw accelerometer; this permission is
-         only required on wearables, but harmless on phones. -->
-    <uses-permission android:name="android.permission.BODY_SENSORS" />
 
     <application
         android:label="Echo"
@@ -44,10 +36,7 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-            <!-- Specifies an Android theme to apply to this Activity as soon as
-                 the Android process has started. This theme is visible to the user
-                 while the Flutter UI initializes. After that, this theme continues
-                 to determine the Window background behind the Flutter UI. -->
+            
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
@@ -62,11 +51,6 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-
-        <!-- P0-3: foreground service hosting BLE scan/advertise + relay tick.
-             `flutter_foreground_task` registers the actual class at runtime; we only
-             need to declare the service with the correct foregroundServiceType so the
-             platform lets us keep scanning while the app is not in the foreground. -->
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             android:foregroundServiceType="connectedDevice|location"
@@ -83,8 +67,6 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- P2-14: required on Android 11+ so `speech_to_text` can
-             enumerate/bind to the system's RecognitionService provider. -->
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>

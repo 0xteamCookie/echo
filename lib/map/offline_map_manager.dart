@@ -1,5 +1,3 @@
-//this will handle downloading maps in device storage
-
 import 'dart:io';
 import 'dart:math';
 import 'package:http/http.dart' as http;
@@ -57,14 +55,12 @@ class OfflineMapManager {
 
     const urlTemplate = kOsmTileUrl;
 
-    // ~7km radius is about 0.063 degrees offset
     double offset = 0.063;
     double minLat = centerLat - offset;
     double maxLat = centerLat + offset;
     double minLon = centerLon - offset;
     double maxLon = centerLon + offset;
 
-    // Zoom kOfflineZoomLowResMin to kOfflineZoomLowResMax for low resolution
     for (int z = kOfflineZoomLowResMin; z <= kOfflineZoomLowResMax; z++) {
       int minX = _lon2tilex(minLon, z);
       int maxX = _lon2tilex(maxLon, z);

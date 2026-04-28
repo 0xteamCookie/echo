@@ -18,7 +18,6 @@ final String _targetCharUuidLower = targetCharacteristicUuid
 // ─── Callbacks & State
 final Map<String, Map<String, dynamic>> _seenDevices = {};
 
-// P3-5: prune devices not seen in the last kSeenDeviceTtl so the relay list stays fresh.
 const Duration _seenDeviceTtl = kSeenDeviceTtl;
 Timer? _seenDeviceSweepTimer;
 
@@ -69,7 +68,6 @@ Future<void> startAutoScanner() async {
       });
     }
 
-    // P3-5: start a periodic sweep that drops stale entries from _seenDevices.
     _seenDeviceSweepTimer ??= Timer.periodic(
       const Duration(minutes: 1),
       (_) => _pruneSeenDevices(),
@@ -104,9 +102,6 @@ Future<void> _startScan() async {
   _scanSubscription = FlutterBluePlus.onScanResults.listen(_onScanResult);
 
   try {
-    // iOS (CoreBluetooth) silently drops scan results in the background unless
-    // a service UUID filter is provided. Always pass withServices so background
-    // scanning works on both Android and iOS.
     await FlutterBluePlus.startScan(
       withServices: [targetServiceUuid],
       timeout: const Duration(seconds: 30),
@@ -186,9 +181,6 @@ List<Map<String, dynamic>> getCurrentScanResults() {
   return _seenDevices.values.toList();
 }
 
-/// P3-5: drop entries not refreshed within [_seenDeviceTtl]. Called on a
-/// 1-minute timer so the relay loop never tries to dispatch to a node we
-/// haven't heard from in 5+ minutes.
 void _pruneSeenDevices() {
   if (_seenDevices.isEmpty) return;
   final cutoff = DateTime.now().subtract(_seenDeviceTtl).millisecondsSinceEpoch;
@@ -217,9 +209,6 @@ Future<bool> dispatchPayloadToDevice(
   try {
     print("🔌 [dispatchPayload] Dialing MAC: $deviceId...");
 
-    // Clear GATT cache only. `removeBond` was removed because it destroys
-    // the user's pairings with unrelated Bluetooth devices (headphones,
-    // car) every time we relay, which is a data-loss-class bug.
     if (Platform.isAndroid) {
       try {
         await device.clearGattCache();
@@ -255,7 +244,6 @@ Future<bool> dispatchPayloadToDevice(
               );
             }
 
-            // Delay to let the radio buffer flush down to the hardware
             await Future.delayed(const Duration(milliseconds: 50));
 
             // 4. Disconnect immediately to free up the radio

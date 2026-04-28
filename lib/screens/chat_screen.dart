@@ -171,7 +171,6 @@ class _ChatScreenState extends State<ChatScreen>
     final textToSend = _controller.text.trim();
     _controller.clear();
 
-    // Button micro-animation
     _sendAnim.forward().then((_) => _sendAnim.reverse());
 
     await sendNewMessage(textToSend);
@@ -190,7 +189,6 @@ class _ChatScreenState extends State<ChatScreen>
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // ── Name chip ─────────────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
           child: GestureDetector(
@@ -232,7 +230,6 @@ class _ChatScreenState extends State<ChatScreen>
           ),
         ),
 
-        // ── Messages list ─────────────────────────────────────────────────
         Expanded(
           child: ValueListenableBuilder<List<Map<String, dynamic>>>(
             valueListenable: AppState().chatMessages,
@@ -254,7 +251,6 @@ class _ChatScreenState extends State<ChatScreen>
           ),
         ),
 
-        // ── Composer ──────────────────────────────────────────────────────
         _Composer(
           controller: _controller,
           focusNode: _focusNode,
@@ -266,7 +262,6 @@ class _ChatScreenState extends State<ChatScreen>
   }
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
 class _EmptyChat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -312,7 +307,6 @@ class _EmptyChat extends StatelessWidget {
   }
 }
 
-// ─── Message bubble ───────────────────────────────────────────────────────────
 class _MessageBubble extends StatefulWidget {
   final Map<String, dynamic> msg;
   final bool isMe;
@@ -493,7 +487,6 @@ class _MessageBubbleState extends State<_MessageBubble>
   }
 }
 
-// ─── Avatar ───────────────────────────────────────────────────────────────────
 class _Avatar extends StatelessWidget {
   final String name;
   const _Avatar({required this.name});
@@ -532,7 +525,6 @@ class _Avatar extends StatelessWidget {
   }
 }
 
-// ─── Composer ─────────────────────────────────────────────────────────────────
 class _Composer extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;

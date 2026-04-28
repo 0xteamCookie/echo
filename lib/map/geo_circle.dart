@@ -2,14 +2,6 @@ import 'dart:math';
 import 'package:latlong2/latlong.dart';
 import '../core/constants.dart';
 
-/// Builds a list of [LatLng] points forming a circle polygon on the globe.
-///
-/// Uses the haversine "destination point given bearing" formula so the circle
-/// is geographically accurate regardless of latitude.
-///
-/// [center]  – centre of the circle.
-/// [radiusM] – radius in **metres**.
-/// [points]  – number of polygon vertices (higher = smoother, 72 is fine).
 List<LatLng> buildGeoCircle(LatLng center, double radiusM, {int points = 72}) {
   const double earthRadius = kEarthRadiusMetres;
   final double lat1 = center.latitude * pi / 180;

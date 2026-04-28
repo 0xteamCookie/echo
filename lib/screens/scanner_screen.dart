@@ -37,7 +37,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
         bool isValid = await AuthService.verifyAndSaveToken(token);
 
         if (isValid) {
-          // Change the dashboard to rescuer
           AppState().role.value = UserRole.rescuer;
 
           if (mounted) {
@@ -48,18 +47,16 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 ),
               ),
             );
-            // Go back to the main dashboard
             Navigator.of(context).pop(true);
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Invalid or Expired QR Code ❌')),
           );
-          // Allow them to scan again
           controller.start();
           setState(() => isScanning = true);
         }
-        break; // Process only the first valid QR code found in frame
+        break;
       }
     }
   }

@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadAnnouncements();
-    // Refresh every 2 minutes — announcements are low-frequency.
+    // Refresh every 2 minutes
     _refreshTimer = Timer.periodic(const Duration(minutes: 2), (_) {
       _loadAnnouncements();
     });

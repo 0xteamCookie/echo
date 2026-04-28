@@ -2,15 +2,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
-/// Task handler run inside the Android foreground service process by
-/// `flutter_foreground_task`. Its job is simply to stay alive so the OS does
-/// not aggressively suspend our BLE scan/advertise/relay pipelines. The actual
-/// mesh work is still driven from the main isolate callbacks in `main.dart`.
-///
-/// We intentionally keep this class minimal — all real logic (peripheral GATT
-/// writes, relay ticks, sync) lives in the main isolate. The service just acts
-/// as an execution-time anchor that Android respects for "connectedDevice" +
-/// "location" foreground types.
 @pragma('vm:entry-point')
 void meshForegroundTaskEntrypoint() {
   FlutterForegroundTask.setTaskHandler(_MeshTaskHandler());
@@ -24,7 +15,6 @@ class _MeshTaskHandler extends TaskHandler {
 
   @override
   void onRepeatEvent(DateTime timestamp) {
-    // 15 s tick; used only as a liveness heartbeat for the notification.
     FlutterForegroundTask.updateService(
       notificationTitle: 'Beacon mesh running',
       notificationText: 'Relaying nearby messages in the background',
@@ -44,11 +34,6 @@ class MeshForegroundService {
     if (_initialized) return;
     _initialized = true;
 
-    // iOS has no foreground services. Background execution is driven by
-    // CoreBluetooth callbacks (bluetooth-central / bluetooth-peripheral
-    // UIBackgroundModes in Info.plist). Calling flutter_foreground_task on
-    // iOS would only register a BGAppRefreshTask (fires ≤ once/15 min) which
-    // is unsuitable for the 15 s relay loop. Skip entirely on iOS.
     if (!Platform.isAndroid) return;
 
     FlutterForegroundTask.initCommunicationPort();

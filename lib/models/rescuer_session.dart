@@ -1,16 +1,16 @@
-/// Holds the parsed JWT session data for a logged-in rescue worker.
+// Hold parsed JWT session data for logged-in rescuer.
 class RescuerSession {
   final String name;
 
   final String role;
 
-  /// Assigned zone centre latitude.
+  // Assigned zone centre latitude.
   final double lat;
 
-  /// Assigned zone centre longitude.
+  // Assigned zone centre longitude.
   final double lng;
 
-  /// Assigned zone radius in metres.
+  // Assigned zone radius in metres.
   final double radiusM;
 
   const RescuerSession({
@@ -21,7 +21,7 @@ class RescuerSession {
     required this.radiusM,
   });
 
-  /// Build from the raw JWT payload map.
+  // Build from the raw JWT payload map.
   factory RescuerSession.fromJwtPayload(Map<dynamic, dynamic> payload) {
     return RescuerSession(
       name: (payload['name'] ?? 'Unknown').toString(),
@@ -32,7 +32,6 @@ class RescuerSession {
     );
   }
 
-  /// Rebuild from the flat key-value pairs stored in secure storage.
   factory RescuerSession.fromStorageMap(Map<String, String> map) {
     return RescuerSession(
       name: map['name'] ?? 'Unknown',
@@ -43,7 +42,6 @@ class RescuerSession {
     );
   }
 
-  /// Flat key-value pairs suitable for [FlutterSecureStorage].
   Map<String, String> toStorageMap() => {
     'name': name,
     'role': role,

@@ -3,8 +3,7 @@ import '../central/intialize.dart';
 import '../database/db_hook.dart';
 import 'packet_codec.dart';
 
-/// Evaluates whether a message should be relayed to specific nearby devices.
-/// Returns a list of device IDs that need this message.
+// Returns a list of device IDs that need this message.
 Future<List<String>> evaluateRelayDecision({
   required String messageId,
   required List<Map<String, dynamic>> nearbyDevices,
@@ -41,9 +40,6 @@ Future<List<String>> evaluateRelayDecision({
   return devicesThatNeedMessage;
 }
 
-/// Relays a stored message to the given target devices. Increments `hopCount`
-/// and refuses to transmit if the TTL has been exhausted (P1-2). The outgoing
-/// frame is always encoded as v2 (base64 text fields, P1-1).
 Future<void> relayMessage(
   Map<String, dynamic> packet,
   List<String> targetDeviceIds,
@@ -61,13 +57,10 @@ Future<void> relayMessage(
       return;
     }
 
-    // Transmit with an incremented hop count so receivers see the new value.
+    // Transmit with an incremented hop count
     final outgoing = Map<String, dynamic>.from(packet);
     outgoing['hopCount'] = currentHops + 1;
 
-    // P2-11: prefer v3 if the packet carried a signature + public key
-    // (relays MUST NOT resign — that would break authenticity). Fall back to
-    // v2 for legacy packets that pre-date signing so they keep propagating.
     final signature = (outgoing['signature'] ?? '').toString();
     final pubKey = (outgoing['deviceSenderPublicKey'] ?? '').toString();
     final String compactPayload;
