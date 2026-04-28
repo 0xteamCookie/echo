@@ -56,8 +56,7 @@ Future<void> _sendHeartbeat() async {
         lat = pos.latitude;
         lng = pos.longitude;
       }
-    } catch (_) {
-    }
+    } catch (_) {}
 
     if (lat == null || lng == null) {
       final session = AppState().rescuerSession.value;

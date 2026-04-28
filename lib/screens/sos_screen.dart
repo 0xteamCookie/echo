@@ -237,9 +237,7 @@ class _RadarPainter extends CustomPainter {
     final opacity = 1.0 - t;
     final ripplePaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth =
-          2.0 +
-          (2.0 * (1 - t))
+      ..strokeWidth = 2.0 + (2.0 * (1 - t))
       ..color = const Color(0xFFD96B45).withOpacity(opacity * 0.6);
 
     canvas.drawCircle(center, radius, ripplePaint);

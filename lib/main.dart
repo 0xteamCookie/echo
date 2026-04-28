@@ -42,7 +42,7 @@ class AppState {
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
-// Colour Palette 
+// Colour Palette
 class BeaconColors {
   static const background = Color(0xFFFAF7F2); // warm off-white
   static const surface = Color(0xFFFFFFFF);

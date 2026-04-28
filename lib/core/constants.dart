@@ -4,7 +4,7 @@
 ///   import 'package:echo/core/constants.dart';
 library;
 
-// BLE / Mesh UUIDs 
+// BLE / Mesh UUIDs
 const String kServiceUuid = '12345678-1234-5678-1234-56789abcdef0';
 
 /// GATT characteristic UUID

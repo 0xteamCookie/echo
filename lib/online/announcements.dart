@@ -60,8 +60,7 @@ Future<List<Announcement>> fetchAnnouncements({int limit = 20}) async {
         lat = double.tryParse(parts[0].trim());
         lng = double.tryParse(parts[1].trim());
       }
-    } catch (_) {
-    }
+    } catch (_) {}
 
     final qp = <String, String>{'limit': limit.toString()};
     if (lat != null && lng != null) {

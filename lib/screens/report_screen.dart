@@ -61,8 +61,7 @@ class _ReportScreenState extends State<ReportScreen> {
           _myLoc = (lat: lat, lng: lng);
         }
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _loadIncidents() async {
