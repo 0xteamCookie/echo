@@ -25,6 +25,7 @@ Backend and operator console: **[github.com/0xteamCookie/echo-backend](https://g
 - [The Problem](#the-problem)
 - [How Echo Works](#how-echo-works)
 - [System Overview](#system-overview)
+- [Demo](#demo)
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
 - [AI Integration](#ai-integration)
@@ -79,6 +80,34 @@ The split is deliberate: the mobile app must stand alone when the cloud is unrea
 | **Rescuer mode** | QR-code-provisioned RS256 JWT; 2-minute on-duty heartbeat feeds the AI dispatch agent. |
 | **Multilingual announcements** | Operator broadcasts auto-translated into 10 languages. |
 | **Ed25519 signed packets** | Every relay verifies the originator's signature; impersonation is cryptographically impossible. |
+
+## Demo
+
+[![Watch the 3-minute demo](https://img.youtube.com/vi/YQhxX8otG1A/maxresdefault.jpg)](https://youtu.be/YQhxX8otG1A)
+
+### Mobile app — Beacon
+
+<table>
+<tr>
+<td align="center"><img src="docs/demos/image.png" width="180" alt="Zone map" /><br/><sub>Zone map</sub></td>
+<td align="center"><img src="docs/demos/image1.png" width="180" alt="Mesh chat" /><br/><sub>Mesh chat</sub></td>
+<td align="center"><img src="docs/demos/image2.png" width="180" alt="SOS broadcast" /><br/><sub>SOS broadcast</sub></td>
+<td align="center"><img src="docs/demos/image3.png" width="180" alt="Incident reports · fall detection" /><br/><sub>Incident reports · fall detection</sub></td>
+</tr>
+</table>
+
+### Operator console — DisasterOps
+
+<table>
+<tr>
+<td><img src="docs/demos/image2-operator.png" alt="Live operations map" /><br/><sub>Live operations map</sub></td>
+</tr>
+<tr>
+<td><img src="docs/demos/image1-operator.png" alt="Agentic dispatch console" /><br/><sub>Agentic dispatch console</sub></td>
+</tr>
+</table>
+
+---
 
 ## Tech Stack
 
