@@ -12,12 +12,6 @@ import '../mesh/packet_codec.dart';
 import '../packet/get_device_id.dart';
 import '../packet/get_location.dart';
 
-/// Rescuer triage feed (P1-5).
-///
-/// Lists recent SOS incidents in (or near) the rescuer's zone and lets the
-/// rescuer flip each one through `ack → enroute → resolved`. Each tap
-/// broadcasts an ACK control frame back across the mesh so peers (and
-/// eventually the victim's device) learn someone has picked the call up.
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
 
@@ -31,7 +25,6 @@ class _ReportScreenState extends State<ReportScreen> {
   bool _broadcasting = false;
   Timer? _refreshTimer;
 
-  /// Current rescuer location, `null` until resolved; used for distance label.
   ({double lat, double lng})? _myLoc;
 
   @override
@@ -69,7 +62,6 @@ class _ReportScreenState extends State<ReportScreen> {
         }
       }
     } catch (_) {
-      // distance label is nice-to-have; swallow failures silently.
     }
   }
 
@@ -78,12 +70,11 @@ class _ReportScreenState extends State<ReportScreen> {
       final rows = await getReportableIncidents(withinHours: 24);
       final session = AppState().rescuerSession.value;
 
-      // Scope to the rescuer's zone when one is assigned, otherwise show all.
       final filtered = session == null
           ? List<Map<String, dynamic>>.from(rows)
           : rows.where((r) {
               final loc = _parseLatLng(r['location']?.toString());
-              if (loc == null) return true; // no geo → include by default
+              if (loc == null) return true;
               return haversineMeters(
                     loc.$1,
                     loc.$2,
@@ -191,8 +182,6 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  // ── helpers ────────────────────────────────────────────────────────────
-
   static (double, double)? _parseLatLng(String? raw) {
     if (raw == null || raw.isEmpty) return null;
     final parts = raw.split(',');
@@ -215,7 +204,6 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 }
 
-/// Haversine distance in metres. Top-level so the card widget can reuse it.
 double haversineMeters(double lat1, double lng1, double lat2, double lng2) {
   const r = kEarthRadiusMetres;
   final dLat = (lat2 - lat1) * math.pi / 180.0;
@@ -228,8 +216,6 @@ double haversineMeters(double lat1, double lng1, double lat2, double lng2) {
           math.cos(lat2 * math.pi / 180.0);
   return 2 * r * math.asin(math.min(1.0, math.sqrt(a)));
 }
-
-// ─── Incident card ──────────────────────────────────────────────────────────
 
 class _IncidentCard extends StatelessWidget {
   final Map<String, dynamic> row;

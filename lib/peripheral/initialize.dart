@@ -3,11 +3,11 @@ import 'dart:typed_data';
 import 'package:ble_peripheral/ble_peripheral.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../core/constants.dart';
+import '../packet/get_user_name.dart';
 
 const String myServiceUuid = kServiceUuid;
 const String myCharacteristicUuid = kCharacteristicUuid;
 
-// Add a global callback for when a raw string is received via GATT Write
 Function(String rawMessage, String senderDeviceId)? onPeripheralMessageReceived;
 
 Future<void> requestBlePermissions() async {
@@ -46,7 +46,7 @@ Future<void> setupBlePeripheral() async {
         } catch (e) {
           print("Failed to decode written data: $e");
         }
-        return null; // Acknowledge standard write with no error code
+        return null;
       }
       return null;
     });
@@ -80,11 +80,18 @@ Future<void> _startAdvertisingSequence() async {
       ),
     );
 
+    String userName = await UserSettings.getName();
+    userName = userName.trim();
+    if (userName.length > 8) {
+      userName = userName.substring(0, 8);
+    }
+    final String localName = userName.isNotEmpty ? userName : "Echo";
+
     await BlePeripheral.startAdvertising(
       services: [myServiceUuid],
-      localName: "MyBeacon",
+      localName: localName,
     );
-    print("Advertising open mailbox...");
+    print("Advertising open mailbox as $localName...");
   } catch (e) {
     print("Broadcasting deferred: $e");
   }

@@ -1,18 +1,3 @@
-/// P2-15 — accelerometer-based fall/immobility detector with auto-SOS.
-///
-/// Pure `sensors_plus` — no activity-recognition SDK, so we stay off Google
-/// Play Services and this works equally on Android and iOS. The detector
-/// fires a "fall detected" event when:
-///
-///   1. A g-spike > 3 g is observed, followed by
-///   2. Sustained immobility (accel magnitude stays within ±0.3 g of gravity
-///      for > 2 minutes).
-///
-/// When that combination fires we pop a 30 s countdown. If the user taps
-/// "I'm OK" the countdown is cancelled. Otherwise we auto-send an SOS with
-/// `isSos=1` and a canned message.
-///
-/// Opt-in via SharedPreferences flag `auto_sos_enabled`. Off by default.
 library;
 
 import 'dart:async';
@@ -32,9 +17,6 @@ const Duration _spikeWindow = kFallSpikeWindow;
 const Duration _immobilityRequired = kFallImmobilityRequired;
 const Duration _countdownDuration = kFallCountdownDuration;
 
-/// Callback used by the UI to surface the 30-second cancellable countdown.
-/// [onCancel] cancels the pending auto-SOS; [onConfirm] skips the countdown
-/// and sends immediately. Implementations should show a modal/banner.
 typedef FallWarningHandler =
     void Function({
       required Duration countdown,
@@ -42,9 +24,6 @@ typedef FallWarningHandler =
       required VoidCallback onConfirm,
     });
 
-/// Called when the countdown elapses without a cancel → fire the SOS. The
-/// implementation is wired to `sendSosHeartbeat` from `send_heartbeat.dart`
-/// in `main.dart`.
 typedef AutoSosTrigger = Future<void> Function(String message);
 
 class ActivityMonitor {
@@ -60,7 +39,6 @@ class ActivityMonitor {
   FallWarningHandler? _warningHandler;
   AutoSosTrigger? _sosTrigger;
 
-  /// Persistent opt-in. When false, [start] is a no-op.
   static Future<bool> isEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_kAutoSosEnabledKey) ?? false;
@@ -76,7 +54,6 @@ class ActivityMonitor {
     }
   }
 
-  /// Install UI + SOS hooks. Safe to call multiple times; latest wins.
   void installHooks({
     FallWarningHandler? warningHandler,
     AutoSosTrigger? sosTrigger,
@@ -117,9 +94,6 @@ class ActivityMonitor {
   }
 
   void _onAccel(UserAccelerometerEvent e) {
-    // `userAccelerometerEventStream` already subtracts gravity, so a
-    // stationary device reports ~0,0,0. A fall registers as a transient
-    // impulse whose magnitude crosses several g.
     final magG = math.sqrt(e.x * e.x + e.y * e.y + e.z * e.z) / _gravity;
     final now = DateTime.now();
 
@@ -130,10 +104,8 @@ class ActivityMonitor {
       return;
     }
 
-    // Only start the stillness clock within the spike window.
     if (_lastSpikeAt == null) return;
     if (now.difference(_lastSpikeAt!) > _spikeWindow + _immobilityRequired) {
-      // Spike + grace window is ancient; reset.
       _lastSpikeAt = null;
       _immobilitySince = null;
       return;

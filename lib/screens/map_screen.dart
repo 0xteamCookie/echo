@@ -9,12 +9,6 @@ import '../database/db_hook.dart';
 import '../packet/get_location.dart';
 import '../map/offline_map_manager.dart';
 
-/// Mesh map screen. Shows the user's location plus every message pin received
-/// via BLE mesh.
-///
-/// Uses `flutter_map` + OpenStreetMap (Leaflet-style) tiles for both online
-/// and offline. When online, missing cached tiles fall through to OSM's tile
-/// server; when offline, only downloaded tiles render.
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -171,7 +165,7 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  // ── flutter_map + OSM (used for both online and offline) ────────────────
+  // flutter_map + OSM
   Widget _buildOsmMap() {
     final markers = <Marker>[
       Marker(
@@ -201,8 +195,6 @@ class _MapScreenState extends State<MapScreen> {
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           tileProvider: FileTileProvider(_tilePath),
-          // P3-14: no `errorImage` — flutter_map falls back to an empty tile
-          // on failure instead of repeatedly fetching a hard-coded URL.
         ),
         MarkerLayer(markers: markers),
       ],

@@ -23,7 +23,7 @@ import 'core/constants.dart';
 
 enum UserRole { user, rescuer }
 
-// ─── Global State ───────────────────────────────────────────────────────────
+// Global State
 class AppState {
   static final AppState _instance = AppState._internal();
   factory AppState() => _instance;
@@ -40,12 +40,9 @@ class AppState {
   );
 }
 
-/// Root navigator key — used by background services (ActivityMonitor) that
-/// need to surface modal UI (fall-detected countdown) without holding a
-/// BuildContext of their own.
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
-// ─── Warm Colour Palette ────────────────────────────────────────────────────
+// Colour Palette 
 class BeaconColors {
   static const background = Color(0xFFFAF7F2); // warm off-white
   static const surface = Color(0xFFFFFFFF);
@@ -87,10 +84,6 @@ void _initializeApp() async {
   // Restore any saved rescuer session from secure storage
   await AuthService.isLoggedIn();
 
-  // P2-11: ensure the device's long-lived Ed25519 identity exists so every
-  // outgoing packet can be signed. Failure here is non-fatal — sending just
-  // falls back to unsigned v2 frames (covered by the getPublicKeyB64 → ''
-  // short-circuit in send_message.dart).
   try {
     await ed25519.ensureKeypair();
   } catch (e) {
@@ -100,8 +93,6 @@ void _initializeApp() async {
   // Sync messages to internet
   syncMessages();
 
-  // If the user is already logged in as a rescuer, start publishing on-duty
-  // heartbeats so the admin dispatch engine can route incidents to them.
   if (AppState().role.value == UserRole.rescuer) {
     startRescuerHeartbeat();
   }
@@ -131,8 +122,6 @@ void _initializeApp() async {
 
     if (decoded['isNew'] == false) return;
 
-    // Route on the authoritative isSos flag from the decoded packet; never on
-    // substring matches against the (untrusted) human message body (P0-4).
     final isSos = decoded['isSos'] == 1;
 
     final payload = decoded;
@@ -171,18 +160,12 @@ void _initializeApp() async {
   startAutoScanner();
   startRelayLoop();
 
-  // P0-3: keep the mesh alive when the user leaves the app.
-  // Best-effort: any failure here (e.g. iOS, or permission denied) is logged
-  // and swallowed so the foreground UI still works.
   try {
     await MeshForegroundService.initAndStart();
   } catch (e) {
     debugPrint('Foreground service start failed: $e');
   }
 
-  // P2-15: wire the fall-detector SOS trigger and (if the user opted in)
-  // start the accelerometer listener. The actual 30 s countdown UI is owned
-  // by the home screen — see `home_screen.dart`.
   ActivityMonitor.instance.installHooks(
     sosTrigger: (msg) async {
       await sendSosHeartbeat(department: 'Rescue', additionalMessage: msg);
@@ -291,7 +274,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Beacon',
+      title: 'Echo',
       debugShowCheckedModeBanner: false,
       navigatorKey: rootNavigatorKey,
       theme: ThemeData(

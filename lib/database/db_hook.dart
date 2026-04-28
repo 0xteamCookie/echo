@@ -1,10 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'initialize_db.dart';
 
-// Columns that actually exist in the `messages` table. Any extra keys on the
-// incoming packet map (e.g. `protocolVersion`, `signature`,
-// `deviceSenderPublicKey`, `triage`, `isNew`, `relayerMac`) are stripped
-// before insert so sqflite doesn't throw "no such column".
 const Set<String> _messageColumns = {
   'messageId',
   'message',
@@ -26,8 +22,6 @@ const Set<String> _messageColumns = {
 Future<void> insertMessage(Map<String, dynamic> data) async {
   final db = await DatabaseHelper.instance.database;
 
-  // Guarantee `time` is populated so `ORDER BY time ASC` in getUnsyncedMessages
-  // works for every row (including packets relayed from peers that omit it).
   final row = <String, dynamic>{
     for (final e in data.entries)
       if (_messageColumns.contains(e.key)) e.key: e.value,
@@ -38,7 +32,6 @@ Future<void> insertMessage(Map<String, dynamic> data) async {
     String? derived;
     if (expiresAt is String && expiresAt.isNotEmpty) {
       try {
-        // Best-effort: packets carry only expiresAt, so derive t0 = expiresAt - 24h.
         final expiry = DateTime.parse(expiresAt).toUtc();
         derived = expiry.subtract(const Duration(days: 1)).toIso8601String();
       } catch (_) {}
@@ -138,8 +131,6 @@ Future<void> markAsSynced(String id) async {
   );
 }
 
-/// Recent SOS rows in the last [withinHours] hours, newest first.
-/// Used by the rescuer heatmap (P1-4).
 Future<List<Map<String, dynamic>>> getRecentSosMessages({
   int withinHours = 24,
 }) async {
@@ -157,8 +148,6 @@ Future<List<Map<String, dynamic>>> getRecentSosMessages({
   );
 }
 
-/// Incidents that a rescuer should triage: SOS flag raised in the last
-/// [withinHours] hours, newest first. Used by the report screen (P1-5).
 Future<List<Map<String, dynamic>>> getReportableIncidents({
   int withinHours = 24,
 }) async {
@@ -176,8 +165,6 @@ Future<List<Map<String, dynamic>>> getReportableIncidents({
   );
 }
 
-/// Persist a rescuer's acknowledgement state for a message (P1-5).
-/// Valid statuses: `ack`, `enroute`, `resolved`.
 Future<void> updateAckStatus(String messageId, String status) async {
   final db = await DatabaseHelper.instance.database;
   await db.update(

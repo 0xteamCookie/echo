@@ -29,7 +29,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_selectedRole == UserRole.rescuer &&
         _currentPage == 2 &&
         !_rescuerAuthenticated) {
-      // Must authenticate before proceeding from the Auth page
       _scanRescuerToken();
       return;
     }
@@ -55,7 +54,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _scanRescuerToken() async {
-    // If they already scanned, proceed
     if (_rescuerAuthenticated) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -69,7 +67,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       MaterialPageRoute(builder: (_) => const ScannerScreen()),
     );
 
-    // After returning from ScannerScreen, check if they successfully authenticated
     if (success == true) {
       setState(() {
         _rescuerAuthenticated = true;
@@ -114,7 +111,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: PageView(
                 controller: _pageController,
                 physics:
-                    const NeverScrollableScrollPhysics(), // Prevent swipe to skip validation
+                    const NeverScrollableScrollPhysics(),
                 onPageChanged: (index) {
                   setState(() {
                     _currentPage = index;
@@ -437,8 +434,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_currentPage == 1 && _nameController.text.trim().isEmpty)
       canProceed = false;
 
-    // We only have 3 pages for User/Victim, and 4 pages for Rescuer.
-    // Let's cap _currentPage accordingly if we used length.
     final totalPages = _selectedRole == UserRole.rescuer ? 4 : 3;
     final isLastPage = _currentPage == (totalPages - 1);
 

@@ -32,7 +32,6 @@ Future<void> _relayTick() async {
     final nearbyDevices = getCurrentScanResults();
     if (nearbyDevices.isEmpty) return;
 
-    // P3-7: prioritize stronger signals so nearest peers receive first.
     nearbyDevices.sort((a, b) {
       final ra = (a['rssi'] is int)
           ? a['rssi'] as int
@@ -40,7 +39,7 @@ Future<void> _relayTick() async {
       final rb = (b['rssi'] is int)
           ? b['rssi'] as int
           : int.tryParse((b['rssi'] ?? '').toString()) ?? -999;
-      return rb.compareTo(ra); // descending RSSI (stronger first)
+      return rb.compareTo(ra);
     });
 
     print(
@@ -53,7 +52,6 @@ Future<void> _relayTick() async {
           ? msg['hopCount'] as int
           : int.tryParse((msg['hopCount'] ?? '0').toString()) ?? 0;
 
-      // P1-2: stop relaying once TTL is exhausted.
       if (hopCount >= maxHops) continue;
 
       final devicesThatNeedMessage = await evaluateRelayDecision(

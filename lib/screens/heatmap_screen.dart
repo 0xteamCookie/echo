@@ -14,12 +14,6 @@ import '../main.dart';
 import '../models/rescuer_session.dart';
 import '../core/constants.dart';
 
-/// Shows the rescuer's assigned zone on a map with a highlighted region circle.
-/// Centred on the JWT-assigned lat/lng with radius_m as the zone boundary.
-///
-/// Uses `flutter_map` + OpenStreetMap (Leaflet-style) tiles for both online
-/// and offline. Online, the provider falls through to OSM's tile server;
-/// offline, only downloaded tiles render.
 class HeatmapScreen extends StatefulWidget {
   const HeatmapScreen({super.key});
 
@@ -33,22 +27,19 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   bool _isDownloading = false;
   bool _isRefreshing = false;
 
-  /// flutter_map controller.
+  // flutter_map controller.
   final MapController _mapController = MapController();
 
-  /// Whether connectivity_plus reports an active network. Used only to toggle
-  /// the "offline" banner; the tile provider handles both modes transparently.
   bool _isOnline = false;
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
-  /// Aggregated SOS density cells (~50m each).
+  /// SOS density
   List<_SosCluster> _clusters = [];
 
-  /// Refresh the heatmap every 30s so new SOS hits show up without manual reload.
+  /// Refresh heatmap every 30s
   Timer? _refreshTimer;
 
-  /// ~50 m cell size in degrees latitude (1° lat ≈ 111 km).
   static const double _cellDegLat = kHeatmapCellDegLat;
 
   Timer? _locationTimer;
@@ -136,8 +127,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
     }
   }
 
-  /// Pull the last 24h of SOS rows from SQLite, drop anything outside the
-  /// assigned zone, and bucket into ~50m cells for a rough density map.
   Future<void> _refreshHeatmap() async {
     final session = _session;
     if (session == null) return;
@@ -200,7 +189,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
     return LatLng(lat, lng);
   }
 
-  /// Haversine distance in metres.
   static double _haversineMeters(LatLng a, LatLng b) {
     const r = kEarthRadiusMetres;
     final dLat = (b.latitude - a.latitude) * math.pi / 180.0;
@@ -353,7 +341,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
     );
   }
 
-  // ── flutter_map + OSM tiles (used for both online and offline) ──────────
+  // flutter_map + OSM tiles
   Widget _buildMap() {
     final session = _session!;
     final zoneColor = _zoneColor(session.role);
@@ -374,8 +362,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
               tileProvider: _tilePath.isNotEmpty
                   ? _OfflineFallbackTileProvider(_tilePath)
                   : NetworkTileProvider(),
-              // P3-14: no `errorImage` — flutter_map falls back to an empty
-              // tile on failure instead of repeatedly GETing a hard-coded URL.
             ),
             PolygonLayer(
               polygons: [
@@ -486,7 +472,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   }
 }
 
-// ─── Zone Information Card ──────────────────────────────────────────────────
 class _ZoneInfoCard extends StatelessWidget {
   final RescuerSession session;
   const _ZoneInfoCard({required this.session});
@@ -585,7 +570,6 @@ class _ZoneInfoCard extends StatelessWidget {
   }
 }
 
-// ─── Offline-first tile provider with network fallback ──────────────────────
 class _OfflineFallbackTileProvider extends TileProvider {
   final String basePath;
   _OfflineFallbackTileProvider(this.basePath);
@@ -611,7 +595,6 @@ class _OfflineFallbackTileProvider extends TileProvider {
   }
 }
 
-// ─── SOS density cluster (P1-4) ─────────────────────────────────────────────
 class _SosCluster {
   final LatLng center;
   final int count;

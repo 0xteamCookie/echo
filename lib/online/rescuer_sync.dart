@@ -6,28 +6,20 @@ import 'package:http/http.dart' as http;
 import '../auth/auth_service.dart';
 import '../main.dart';
 
-/// Backend base URL compiled in from dart-defines (same value as sync.dart).
+// Backend base URL compiled from dart-defines
 const String _apiBaseUrl = String.fromEnvironment(
   'BEACON_API_BASE_URL',
   defaultValue: 'https://echo-back.getmyroom.in',
 );
 
-/// How often we push an on-duty heartbeat while the rescuer is logged in.
 const Duration _heartbeatInterval = Duration(minutes: 2);
 
 Timer? _heartbeatTimer;
 
-/// Start the rescuer heartbeat loop. Safe to call multiple times — it is a
-/// no-op if the timer is already running or no rescuer is logged in.
-///
-/// Each tick sends the device's current GPS fix to
-/// `POST /api/rescuer/heartbeat` so the admin dispatch engine can see this
-/// rescuer as on-duty and route AI recommendations to them.
 void startRescuerHeartbeat() {
   if (_heartbeatTimer != null) return;
   if (AppState().role.value != UserRole.rescuer) return;
 
-  // Fire one immediately so the rescuer shows up in dispatch without waiting.
   unawaited(_sendHeartbeat());
 
   _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) {
@@ -49,8 +41,6 @@ Future<void> _sendHeartbeat() async {
     final token = await AuthService.getRawToken();
     if (token == null || token.isEmpty) return;
 
-    // Try to get a real GPS fix; fall back to the JWT-assigned zone centre so
-    // the heartbeat is still useful even without live location permission.
     double? lat;
     double? lng;
     try {
@@ -67,7 +57,6 @@ Future<void> _sendHeartbeat() async {
         lng = pos.longitude;
       }
     } catch (_) {
-      /* fall back to assigned zone */
     }
 
     if (lat == null || lng == null) {
@@ -101,8 +90,6 @@ Future<void> _sendHeartbeat() async {
   }
 }
 
-/// Fire a one-shot "off duty" heartbeat before logout so the rescuer stops
-/// showing up in dispatch queries immediately.
 Future<void> sendOffDutyHeartbeat() async {
   try {
     final token = await AuthService.getRawToken();

@@ -166,7 +166,6 @@ class _SosScreenState extends State<SosScreen> with TickerProviderStateMixin {
               ),
             ),
 
-            // ── Bottom Panel ───────────────────────────
             _BroadcastPanel(
               departments: _departments,
               selectedDept: _selectedDept,
@@ -205,13 +204,12 @@ class _RadarPainter extends CustomPainter {
     canvas.drawCircle(center, maxRadius * 0.8, bgPaint);
 
     if (isBroadcasting) {
-      // Draw 3 staggered expanding ripples
       _drawRipple(canvas, center, progress, maxRadius);
       _drawRipple(canvas, center, (progress + 0.33) % 1.0, maxRadius);
       _drawRipple(canvas, center, (progress + 0.66) % 1.0, maxRadius);
     }
 
-    // ── The Center Beacon Icon ──
+    // Center Beacon Icon
     final baseColor = isBroadcasting
         ? const Color(0xFFD96B45)
         : const Color(0xFFB07A55);
@@ -236,13 +234,12 @@ class _RadarPainter extends CustomPainter {
 
   void _drawRipple(Canvas canvas, Offset center, double t, double maxRadius) {
     final radius = maxRadius * t;
-    final opacity = 1.0 - t; // Fades out as it gets larger
-
+    final opacity = 1.0 - t;
     final ripplePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth =
           2.0 +
-          (2.0 * (1 - t)) // Slightly thicker near the center
+          (2.0 * (1 - t))
       ..color = const Color(0xFFD96B45).withOpacity(opacity * 0.6);
 
     canvas.drawCircle(center, radius, ripplePaint);

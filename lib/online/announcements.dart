@@ -9,7 +9,7 @@ const String _apiBaseUrl = String.fromEnvironment(
   defaultValue: 'https://echo-back.getmyroom.in',
 );
 
-/// One announcement item as returned by `GET /api/announcement`.
+/// announcement item as returned by `GET /api/announcement`.
 class Announcement {
   final String id;
   final String? title;
@@ -49,9 +49,6 @@ class Announcement {
   }
 }
 
-/// Fetch announcements from the backend. When `lat`/`lng` are available we
-/// query the nearby endpoint; otherwise the backend returns the latest global
-/// feed.
 Future<List<Announcement>> fetchAnnouncements({int limit = 20}) async {
   try {
     double? lat;
@@ -64,7 +61,6 @@ Future<List<Announcement>> fetchAnnouncements({int limit = 20}) async {
         lng = double.tryParse(parts[1].trim());
       }
     } catch (_) {
-      /* public endpoint — proceed without gps */
     }
 
     final qp = <String, String>{'limit': limit.toString()};

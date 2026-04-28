@@ -3,7 +3,7 @@ import '../crypto/ed25519.dart';
 import '../database/db_hook.dart';
 import '../mesh/packet_codec.dart';
 
-/// Decodes the compact string, saves it to SQLite, and returns the mapped data.
+// Decodes the string, saves it to SQLite, and returns the mapped data.
 Future<Map<String, dynamic>?> decodeAndSaveMessage(
   String rawMessage,
   String senderDeviceId,
@@ -17,9 +17,6 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(
         final relayerId = ack['relayerId']!;
         final status = ack['status'] ?? 'ack';
         await insertMessageDevice(messageId: ackMessageId, deviceId: relayerId);
-        // Status flows from the rescuer report screen: ack / enroute / resolved.
-        // Only persist explicit statuses; plain "ack" doesn't overwrite a
-        // stronger status already recorded locally by the receiving rescuer.
         if (status != 'ack') {
           await updateAckStatus(ackMessageId, status);
         }
@@ -36,9 +33,6 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(
       return null;
     }
 
-    // P2-11: verify signatures on v3 packets. v1/v2 are accepted during
-    // soft-migration but flagged `insecure=true` so the UI / sync layer can
-    // surface that downstream. A v3 packet with a bad signature is DROPPED.
     final protocolVersion = packetMap['protocolVersion'] as int? ?? 1;
     if (protocolVersion >= 3) {
       final pubKey = (packetMap['deviceSenderPublicKey'] ?? '').toString();
@@ -59,14 +53,9 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(
       }
       packetMap['insecure'] = false;
     } else {
-      // Legacy/unsigned packet — accept for now so we don't break the mesh
-      // while older peers upgrade, but mark it so downstream code can treat
-      // it as lower trust.
       packetMap['insecure'] = true;
     }
 
-    // P1-2: drop immediately if the TTL is already exhausted before we even
-    // persist the packet. Otherwise we'd keep relaying a dead message.
     final hopCount = (packetMap['hopCount'] is int)
         ? packetMap['hopCount'] as int
         : int.tryParse((packetMap['hopCount'] ?? '0').toString()) ?? 0;
@@ -93,8 +82,6 @@ Future<Map<String, dynamic>?> decodeAndSaveMessage(
       );
     }
 
-    // Silence "unused parameter" lint — senderDeviceId is used by the caller to
-    // record which peer relayed this frame (insertMessageDevice), not here.
     assert(utf8.encode(senderDeviceId).isNotEmpty || senderDeviceId.isEmpty);
 
     return packetMap;
