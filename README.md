@@ -81,9 +81,17 @@ The split is deliberate: the mobile app must stand alone when the cloud is unrea
 | **Multilingual announcements** | Operator broadcasts auto-translated into 10 languages. |
 | **Ed25519 signed packets** | Every relay verifies the originator's signature; impersonation is cryptographically impossible. |
 
-## Demo
+## Demo Video Link
 
-[![Watch the 3-minute demo](https://img.youtube.com/vi/YQhxX8otG1A/maxresdefault.jpg)](https://youtu.be/YQhxX8otG1A)
+<div align="center">
+  <a href="https://youtu.be/YQhxX8otG1A">
+    <img src="https://img.youtube.com/vi/YQhxX8otG1A/maxresdefault.jpg" alt="Echo demo video" width="700" />
+  </a>
+  <br/><br/>
+  <a href="https://youtu.be/YQhxX8otG1A">
+    <img src="https://img.shields.io/badge/▶_Watch_on_YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch on YouTube" />
+  </a>
+</div>
 
 ### Mobile app — Beacon
 
