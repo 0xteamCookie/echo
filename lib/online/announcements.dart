@@ -9,6 +9,24 @@ const String _apiBaseUrl = String.fromEnvironment(
   defaultValue: 'https://echo-back.getmyroom.in',
 );
 
+/// sync with the backend TRANSLATION_TARGET_LANGS (en,hi,bn,ta,te,mr,gu,kn,ml,pa).
+const Set<String> _supportedLangs = {
+  'en', 'hi', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'pa',
+};
+
+
+String? _preferredLang() {
+  try {
+    final code = PlatformDispatcher.instance.locale.languageCode
+        .toLowerCase()
+        .trim();
+    if (code.isEmpty || code == 'en') return null;
+    return _supportedLangs.contains(code) ? code : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 /// announcement item as returned by `GET /api/announcement`.
 class Announcement {
   final String id;
@@ -66,6 +84,11 @@ Future<List<Announcement>> fetchAnnouncements({int limit = 20}) async {
     if (lat != null && lng != null) {
       qp['lat'] = lat.toString();
       qp['long'] = lng.toString();
+    }
+
+    final lang = _preferredLang();
+    if (lang != null) {
+      qp['lang'] = lang;
     }
 
     final uri = Uri.parse(
