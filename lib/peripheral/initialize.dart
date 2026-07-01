@@ -24,7 +24,7 @@ Future<void> setupBlePeripheral() async {
     BlePeripheral.setBleStateChangeCallback((bool isOn) async {
       print("Bluetooth State Changed: ${isOn ? "ON" : "OFF"}");
       if (isOn) {
-        await _startAdvertisingSequence();
+        await startAdvertisingSequence();
       } else {
         await BlePeripheral.stopAdvertising();
       }
@@ -51,13 +51,13 @@ Future<void> setupBlePeripheral() async {
       return null;
     });
 
-    await _startAdvertisingSequence();
+    await startAdvertisingSequence();
   } catch (e) {
     print("Error Initializing, $e");
   }
 }
 
-Future<void> _startAdvertisingSequence() async {
+Future<void> startAdvertisingSequence() async {
   try {
     try {
       await BlePeripheral.stopAdvertising();

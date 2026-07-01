@@ -11,7 +11,7 @@ class BleCollisionManager {
     if (!_backoffList.containsKey(deviceId)) return false;
 
     final lastFailure = _backoffList[deviceId]!;
-    if (DateTime.now().difference(lastFailure).inSeconds < 10) {
+    if (DateTime.now().difference(lastFailure).inSeconds < 5) {
       return true;
     }
 

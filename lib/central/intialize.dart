@@ -28,6 +28,8 @@ bool _adapterListenerAttached = false;
 Timer? _scanResultThrottleTimer;
 bool _scanResultDirty = false;
 
+bool orchestratorMode = false;
+
 final StreamController<List<Map<String, dynamic>>> _deviceStreamController =
     StreamController.broadcast();
 Stream<List<Map<String, dynamic>>> get scanResultsStream =>
@@ -57,11 +59,17 @@ Future<void> startAutoScanner() async {
       }
     }
 
+    // Always listen to scan results so they are processed into _seenDevices
+    _scanSubscription?.cancel();
+    _scanSubscription = FlutterBluePlus.onScanResults.listen(_onScanResult);
+
     if (!_adapterListenerAttached) {
       _adapterListenerAttached = true;
       FlutterBluePlus.adapterState.listen((state) {
         if (state == BluetoothAdapterState.on) {
-          _startScan();
+          if (!orchestratorMode) {
+            _startScan();
+          }
         } else {
           stopScanning();
         }
@@ -78,18 +86,24 @@ Future<void> startAutoScanner() async {
 }
 
 Future<void> stopScanning() async {
+  if (orchestratorMode) {
+    await FlutterBluePlus.stopScan();
+    return;
+  }
   await _scanSubscription?.cancel();
   await FlutterBluePlus.stopScan();
   _isScanning = false;
 }
 
 Future<void> restartScan() async {
+  if (orchestratorMode) return;
   await stopScanning();
   await Future.delayed(const Duration(milliseconds: 500));
   await _startScan();
 }
 
 Future<void> _startScan() async {
+  if (orchestratorMode) return;
   if (_isScanning) return;
 
   if (FlutterBluePlus.adapterStateNow != BluetoothAdapterState.on) {
@@ -122,7 +136,7 @@ Future<void> _startScan() async {
           _scanLoopScheduled = true;
           Future.delayed(const Duration(seconds: 2), () {
             _scanLoopScheduled = false;
-            if (FlutterBluePlus.adapterStateNow == BluetoothAdapterState.on) {
+            if (FlutterBluePlus.adapterStateNow == BluetoothAdapterState.on && !orchestratorMode) {
               _startScan();
             }
           });
@@ -209,12 +223,6 @@ Future<bool> dispatchPayloadToDevice(
   try {
     print("🔌 [dispatchPayload] Dialing MAC: $deviceId...");
 
-    if (Platform.isAndroid) {
-      try {
-        await device.clearGattCache();
-      } catch (_) {}
-    }
-
     // 1. Connect temporarily with a short timeout
     await device.connect(
       autoConnect: false,
@@ -222,8 +230,36 @@ Future<bool> dispatchPayloadToDevice(
       timeout: const Duration(seconds: 4),
     );
 
+    if (Platform.isAndroid) {
+      try {
+        print("🔌 [dispatchPayload] Clearing GATT cache for $deviceId...");
+        await device.clearGattCache();
+        await Future.delayed(const Duration(milliseconds: 200));
+      } catch (_) {}
+    }
+
+    // Request MTU to handle larger packets
+    if (Platform.isAndroid) {
+      try {
+        print("🔌 [dispatchPayload] Requesting MTU 512 for $deviceId...");
+        await device.requestMtu(512, timeout: 4);
+      } catch (e) {
+        print("⚠️ [dispatchPayload] Request MTU failed: $e");
+      }
+    }
+
     // 2. Discover target service/characteristic
     List<BluetoothService> services = await device.discoverServices();
+
+    print("🔌 [dispatchPayload] Discovered ${services.length} services on $deviceId:");
+    for (var s in services) {
+      final sUuid = s.uuid.toString().toLowerCase();
+      print("  - Service UUID: $sUuid");
+      for (var c in s.characteristics) {
+        final cUuid = c.uuid.toString().toLowerCase();
+        print("    * Characteristic UUID: $cUuid");
+      }
+    }
 
     for (var service in services) {
       if (service.uuid.toString().toLowerCase() == _targetServiceUuidLower) {
@@ -234,9 +270,10 @@ Future<bool> dispatchPayloadToDevice(
             bool canWrite = char.properties.write;
 
             if (canWriteNoResponse || canWrite) {
-              await char.write(payloadBytes, withoutResponse: true);
+              final bool withoutResponse = canWriteNoResponse;
+              await char.write(payloadBytes, withoutResponse: withoutResponse);
               print(
-                "✅ [dispatchPayload] SUCCESS: Transmitted ${payloadBytes.length} bytes to $deviceId!",
+                "✅ [dispatchPayload] SUCCESS: Transmitted ${payloadBytes.length} bytes to $deviceId! (withoutResponse: $withoutResponse)",
               );
             } else {
               print(
