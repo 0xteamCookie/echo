@@ -20,6 +20,7 @@ import 'send/send_heartbeat.dart';
 import 'services/activity_monitor.dart';
 import 'services/mesh_foreground_service.dart';
 import 'services/firebase_bootstrap.dart';
+import 'services/mesh_readiness.dart';
 import 'core/constants.dart';
 
 enum UserRole { user, rescuer }
@@ -173,6 +174,16 @@ void _initializeApp() async {
     }
   });
 
+  // Check BT + Location are on (and prompt if not) before starting the mesh.
+  try {
+    await MeshReadiness.instance.ensureReady();
+  } catch (e) {
+    debugPrint('Mesh readiness check failed: $e');
+  }
+
+  // Re-check on resume in case the user toggled BT/Location while away.
+  WidgetsBinding.instance.addObserver(_MeshLifecycleObserver());
+
   await setupBlePeripheral();
   startAutoScanner();
   startRelayLoop();
@@ -196,6 +207,28 @@ void _initializeApp() async {
     await ActivityMonitor.instance.start();
   } catch (e) {
     debugPrint('ActivityMonitor start failed: $e');
+  }
+}
+
+/// Re-checks mesh prerequisites on resume and restarts the scan if recovered.
+class _MeshLifecycleObserver with WidgetsBindingObserver {
+  bool _wasReady = true;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    () async {
+      final ok = await MeshReadiness.instance.refresh();
+      // Just recovered: restart the scan instead of waiting for the next cycle.
+      if (ok && !_wasReady) {
+        try {
+          await restartScan();
+        } catch (e) {
+          debugPrint('restartScan on resume failed: $e');
+        }
+      }
+      _wasReady = ok;
+    }();
   }
 }
 
