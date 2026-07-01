@@ -19,6 +19,7 @@ import 'online/rescuer_sync.dart';
 import 'send/send_heartbeat.dart';
 import 'services/activity_monitor.dart';
 import 'services/mesh_foreground_service.dart';
+import 'services/firebase_bootstrap.dart';
 import 'core/constants.dart';
 
 enum UserRole { user, rescuer }
@@ -84,6 +85,14 @@ void _initializeApp() async {
   // Restore any saved rescuer session from secure storage
   await AuthService.isLoggedIn();
 
+  // Bring up Firebase (FCM push receive + App Check). No-ops gracefully if the
+  // build has no Firebase config (google-services.json absent).
+  try {
+    await FirebaseBootstrap.initialize();
+  } catch (e) {
+    debugPrint('Firebase init failed: $e');
+  }
+
   try {
     await ed25519.ensureKeypair();
   } catch (e) {
@@ -99,10 +108,18 @@ void _initializeApp() async {
   AppState().role.addListener(() {
     if (AppState().role.value == UserRole.rescuer) {
       startRescuerHeartbeat();
+      // A rescuer just logged in (e.g. via QR); register the FCM token now that
+      // the provisioning JWT exists so they receive agency push alerts.
+      FirebaseBootstrap.registerCurrentToken();
     } else {
       stopRescuerHeartbeat();
     }
   });
+
+  // If already a rescuer at startup, register the FCM token too.
+  if (AppState().role.value == UserRole.rescuer) {
+    FirebaseBootstrap.registerCurrentToken();
+  }
 
   onDeviceListUpdated = (devs) {
     AppState().devices.value = devs;

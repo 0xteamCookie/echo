@@ -2,6 +2,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../database/db_hook.dart';
+import '../services/firebase_bootstrap.dart';
 
 const String _apiBaseUrl = String.fromEnvironment(
   'BEACON_API_BASE_URL',
@@ -51,20 +52,28 @@ Map<String, dynamic> mapToApiPayload(Map<String, dynamic> msg) {
 
 Uri _ingestUri() => Uri.parse('$_apiBaseUrl/api/data');
 
-Map<String, String> _ingestHeaders() {
+Future<Map<String, String>> _ingestHeaders() async {
   final headers = <String, String>{'Content-Type': 'application/json'};
   if (_ingestToken.isNotEmpty) {
     headers['Authorization'] = 'Bearer $_ingestToken';
+  }
+  // Attach a Firebase App Check token when available so the backend's
+  // requireAppCheck middleware accepts this ingest in production. No-ops
+  // (header omitted) when Firebase isn't configured.
+  final appCheckToken = await FirebaseBootstrap.getAppCheckToken();
+  if (appCheckToken != null && appCheckToken.isNotEmpty) {
+    headers['X-Firebase-AppCheck'] = appCheckToken;
   }
   return headers;
 }
 
 Future<void> sendBatch(List<Map<String, dynamic>> messages) async {
+  final headers = await _ingestHeaders();
   for (var msg in messages) {
     try {
       final response = await http.post(
         _ingestUri(),
-        headers: _ingestHeaders(),
+        headers: headers,
         body: jsonEncode(mapToApiPayload(msg)),
       );
 
