@@ -90,24 +90,36 @@ Future<void> sendBatch(List<Map<String, dynamic>> messages) async {
   }
 }
 
+bool _syncing = false;
+
 Future<void> syncMessages() async {
+  // Avoid overlapping syncs double-POSTing the same batch.
+  if (_syncing) {
+    print("Sync already in progress, skipping");
+    return;
+  }
   if (!await hasInternet()) {
     print("No internet, skipping sync");
     return;
   }
 
+  _syncing = true;
   print("Internet detected, syncing...");
 
-  while (true) {
-    final batch = await getUnsyncedMessages();
+  try {
+    while (true) {
+      final batch = await getUnsyncedMessages();
 
-    if (batch.isEmpty) {
-      print("All messages synced ✅");
-      break;
+      if (batch.isEmpty) {
+        print("All messages synced ✅");
+        break;
+      }
+
+      await sendBatch(batch);
+
+      await Future.delayed(Duration(seconds: 2));
     }
-
-    await sendBatch(batch);
-
-    await Future.delayed(Duration(seconds: 2));
+  } finally {
+    _syncing = false;
   }
 }
