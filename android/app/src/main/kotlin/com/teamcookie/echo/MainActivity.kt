@@ -1,4 +1,4 @@
-package com.example.beacon
+package com.teamcookie.echo
 
 import io.flutter.embedding.android.FlutterActivity
 
