@@ -14,18 +14,28 @@ Future<void> requestBlePermissions() async {
   await [Permission.bluetooth, Permission.bluetoothAdvertise].request();
 }
 
+// Add the GATT service once. Rebuilding it on every BT toggle can trigger the
+// OEM pairing popup, so we keep it.
+bool _serviceAdded = false;
+
 Future<void> setupBlePeripheral() async {
   try {
     await requestBlePermissions();
     await BlePeripheral.initialize();
     print("BLE INITIALIZED - OPEN GATT");
 
+    // Build the GATT service exactly once.
+    await _ensureServiceAdded();
+
     // Listen to OS Bluetooth State changes
     BlePeripheral.setBleStateChangeCallback((bool isOn) async {
       print("Bluetooth State Changed: ${isOn ? "ON" : "OFF"}");
       if (isOn) {
+        // BT off can drop the server on some OEMs; re-add if needed, then advertise.
+        await _ensureServiceAdded();
         await _startAdvertisingSequence();
       } else {
+        _serviceAdded = false;
         await BlePeripheral.stopAdvertising();
       }
     });
@@ -57,14 +67,16 @@ Future<void> setupBlePeripheral() async {
   }
 }
 
-Future<void> _startAdvertisingSequence() async {
+/// Adds the GATT service once (idempotent). Keep the char PLAIN (unencrypted,
+/// write-without-response) — encryption/notify would force pairing.
+Future<void> _ensureServiceAdded() async {
+  if (_serviceAdded) return;
   try {
+    // Clear any stale service, then add ours.
     try {
-      await BlePeripheral.stopAdvertising();
+      await BlePeripheral.clearServices();
     } catch (_) {}
-
-    await BlePeripheral.clearServices();
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 300));
     await BlePeripheral.addService(
       BleService(
         uuid: myServiceUuid,
@@ -79,6 +91,17 @@ Future<void> _startAdvertisingSequence() async {
         ],
       ),
     );
+    _serviceAdded = true;
+  } catch (e) {
+    print("Service add deferred: $e");
+  }
+}
+
+Future<void> _startAdvertisingSequence() async {
+  try {
+    try {
+      await BlePeripheral.stopAdvertising();
+    } catch (_) {}
 
     String userName = await UserSettings.getName();
     userName = userName.trim();
