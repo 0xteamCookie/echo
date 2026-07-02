@@ -206,14 +206,11 @@ Future<bool> dispatchPayloadToDevice(
 ) async {
   BluetoothDevice device = BluetoothDevice.fromId(deviceId);
 
+  StreamSubscription<BluetoothBondState>? bondSub;
   try {
     print("🔌 [dispatchPayload] Dialing MAC: $deviceId...");
 
-    if (Platform.isAndroid) {
-      try {
-        await device.clearGattCache();
-      } catch (_) {}
-    }
+    // (no clearGattCache before connect — it's a no-op there; GATT layout is static)
 
     // 1. Connect temporarily with a short timeout
     await device.connect(
@@ -221,6 +218,22 @@ Future<bool> dispatchPayloadToDevice(
       license: License.free,
       timeout: const Duration(seconds: 4),
     );
+
+    // OEM stack sometimes auto-bonds on GATT access (OS pairing popup). If the
+    // peer starts bonding, skip this cycle + back off instead of re-triggering it.
+    bondSub = device.bondState.listen((s) {
+      if (s == BluetoothBondState.bonding) {
+        print("⏸️ [dispatchPayload] OS bonding $deviceId — backing off this cycle");
+      }
+    });
+    final currentBond = await device.bondState.first;
+    if (currentBond == BluetoothBondState.bonding) {
+      BleCollisionManager.recordFailure(deviceId);
+      try {
+        await device.disconnect();
+      } catch (_) {}
+      return false;
+    }
 
     // 2. Discover target service/characteristic
     List<BluetoothService> services = await device.discoverServices();
@@ -266,6 +279,8 @@ Future<bool> dispatchPayloadToDevice(
       await device.disconnect();
     } catch (_) {}
     return false;
+  } finally {
+    await bondSub?.cancel();
   }
 }
 

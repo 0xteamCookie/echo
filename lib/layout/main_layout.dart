@@ -11,6 +11,7 @@ import '../screens/heatmap_screen.dart';
 import '../screens/report_screen.dart';
 import '../database/db_hook.dart';
 import '../auth/auth_service.dart';
+import '../services/mesh_readiness.dart';
 import '../main.dart';
 
 class MainLayout extends StatefulWidget {
@@ -154,24 +155,31 @@ class _MainLayoutState extends State<MainLayout> with TickerProviderStateMixin {
       builder: (context, role, _) {
         return Scaffold(
           appBar: _buildAppBar(role),
-          body: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.04),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
+          body: Column(
+            children: [
+              const _MeshStatusBanner(),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.04),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  ),
+                  child: KeyedSubtree(
+                    key: ValueKey(_currentIndex),
+                    child: _screens[_currentIndex],
+                  ),
+                ),
               ),
-            ),
-            child: KeyedSubtree(
-              key: ValueKey(_currentIndex),
-              child: _screens[_currentIndex],
-            ),
+            ],
           ),
           bottomNavigationBar: SafeArea(child: _buildNav()),
         );
@@ -543,6 +551,57 @@ class _AppBarIconButton extends StatelessWidget {
           onPressed: onPressed,
         ),
       ),
+    );
+  }
+}
+
+/// Warning strip shown when the mesh is offline (BT/Location off). Tap to fix.
+class _MeshStatusBanner extends StatelessWidget {
+  const _MeshStatusBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: MeshReadiness.instance.isReady,
+      builder: (context, ready, _) {
+        if (ready) return const SizedBox.shrink();
+        return ValueListenableBuilder<String>(
+          valueListenable: MeshReadiness.instance.blocker,
+          builder: (context, reason, _) {
+            return Material(
+              color: const Color(0xFFFDECEA),
+              child: InkWell(
+                onTap: () => MeshReadiness.instance.ensureReady(),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded,
+                          color: Color(0xFFD96B45), size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          reason.isEmpty
+                              ? 'Mesh offline — tap to fix'
+                              : '$reason Tap to fix.',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: Color(0xFF8A2B18),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded,
+                          color: Color(0xFFD96B45), size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

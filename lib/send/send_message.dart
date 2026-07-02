@@ -4,6 +4,7 @@ import '../central/intialize.dart';
 import '../crypto/ed25519.dart';
 import '../database/db_hook.dart';
 import '../mesh/packet_codec.dart';
+import '../online/sync.dart';
 import '../packet/generate_packet.dart';
 
 Future<void> sendNewMessage(String textMessage, {bool isSos = false}) async {
@@ -37,6 +38,9 @@ Future<void> sendNewMessage(String textMessage, {bool isSos = false}) async {
       );
       unawaited(blastToEntireMesh(bytes));
     }
+
+    // Push to cloud now if online (no-op offline; mesh blast covers that).
+    unawaited(syncMessages());
   } catch (e) {
     print("Failed to save message: $e");
   }
